@@ -99,7 +99,7 @@ function App() {
             {videoPlaying ? <Pause size={17} weight="fill" aria-hidden="true" /> : <Play size={17} weight="fill" aria-hidden="true" />}<span>{videoPlaying ? 'Pause film' : 'Play film'}</span>
           </button>}
         </section>
-        <UpcomingEvents photoBaseUrl={settings.galleryBaseUrl || '/media'} />
+        <UpcomingEvents />
         <section className="gallery section-pad" id="projects" aria-labelledby="gallery-title">
           <div className="section-heading"><h2 id="gallery-title" data-reveal>You had to be there.</h2><p data-reveal>From the front row <br />to the final encore.</p></div>
           <div className="gallery-grid">{photos.slice(0, 4).map((photo, index) => (

@@ -3,9 +3,10 @@ import { createStorage, mediaTypes as types, mediaLimits as limits, mediaExtensi
 import { randomBytes, randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { digest, verifyPassword } from './password.mjs';
+import { createEvents } from './events.mjs';
 
 const settingSchema = z.object({ revision: z.number().int().nonnegative(), effectsEnabled: z.boolean(), popupEnabled: z.boolean(), audioEnabled: z.boolean(), heroVideoEnabled: z.boolean(), popupId: z.uuid().nullable(), audioId: z.uuid().nullable(), heroId: z.uuid().nullable(), popupAlt: z.string().trim().max(240), popupLink: z.union([z.literal(''), z.url().refine(v => v.startsWith('https://'), 'Use an https:// link')]), audioVolume: z.number().min(0).max(1) }).strict();
-const uploadSchema = z.object({ kind: z.enum(['popup', 'audio', 'hero']), name: z.string().trim().min(1).max(200), contentType: z.string(), size: z.number().int().positive() }).strict();
+const uploadSchema = z.object({ kind: z.enum(['popup', 'audio', 'hero', 'event']), name: z.string().trim().min(1).max(200), contentType: z.string(), size: z.number().int().positive() }).strict();
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
 const fail = (status, message) => { throw new HttpError(status, message); };
 async function readBody(req) {
@@ -22,6 +23,7 @@ export function createHandler({ env = process.env, query, storage = createStorag
     return sql.query(statement, values);
   };
   const credential = () => digest(env.ADMIN_PASSWORD_HASH || '');
+  const events = createEvents(db);
   const configured = () => { if (!env.ADMIN_PASSWORD_HASH) fail(503, 'Set ADMIN_PASSWORD_HASH using npm run admin:password.'); };
   const tokenOf = req => /(?:^|;\s*)trn_admin=([A-Za-z0-9_-]+)/.exec(req.headers.cookie || '')?.[1];
   async function authenticate(req) {
@@ -51,6 +53,7 @@ export function createHandler({ env = process.env, query, storage = createStorag
       const path = new URL(req.url, 'http://localhost').pathname.replace(/\/$/, '');
       const method = req.method;
       if (path === '/api/site-settings' && method === 'GET') return send(200, await settings());
+      if (path === '/api/events' && method === 'GET') return send(200, await events.list());
       if (!path.startsWith('/api/admin/')) fail(404, 'Not found.');
       if (path === '/api/admin/login' && method === 'POST') {
         csrf(req); configured();
@@ -80,6 +83,14 @@ export function createHandler({ env = process.env, query, storage = createStorag
       }
       const owner = await authenticate(req);
       if (method !== 'GET') csrf(req);
+      if (path === '/api/admin/events' && method === 'GET') return send(200, await events.list(true));
+      if (path === '/api/admin/events' && method === 'POST') return send(201, await events.save(await readBody(req)));
+      const eventPath = /^\/api\/admin\/events\/([a-f0-9-]+)$/.exec(path);
+      if (eventPath) {
+        if (!z.uuid().safeParse(eventPath[1]).success) fail(400, 'Invalid event.');
+        if (method === 'PUT') return send(200, await events.save(await readBody(req),eventPath[1]));
+        if (method === 'DELETE') return send(200, await events.remove(eventPath[1],await readBody(req)));
+      }
       if (path === '/api/admin/session' && method === 'GET') return send(200, { authenticated: true });
       if (path === '/api/admin/logout' && method === 'POST') { await db('DELETE FROM trn_sessions WHERE token=$1', [owner]); cookie('', 0); return send(200, { ok: true }); }
       if (path === '/api/admin/settings' && method === 'GET') return send(200, { ...await settings(), uploadsAvailable: storage.configured() });

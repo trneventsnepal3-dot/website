@@ -1,14 +1,16 @@
 .events { background: var(--paper); color: var(--ink); padding-block: 40px; }
 .events-heading { display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-bottom: 28px; }
 .events-heading h2 { font-size: var(--size-heading); }
-.event-row { display: grid; grid-template-columns: 136px 1fr auto; align-items: center; gap: 32px; }
+.events-list { display: grid; gap: 28px; }
+.event-row { display: grid; grid-template-columns: 136px minmax(0, 1fr) auto; align-items: center; gap: 32px; }
+.event-info { overflow-wrap: anywhere; }
 .event-row > img { width: 136px; height: 116px; object-position: 45% center; }
 .event-info h3 { font-size: var(--size-heading); }
 .event-info p { margin-top: 10px; }
 .event-date p { font-size: var(--size-lead); line-height: 1.3; letter-spacing: -.03em; }
 .event-date span { display: block; font-size: var(--size-small); line-height: 1.5; margin-top: 10px; }
 @media (max-width: 1000px) {
-  .event-row { grid-template-columns: 104px 1fr auto; gap: 24px; }
+  .event-row { grid-template-columns: 104px minmax(0, 1fr); gap: 10px 24px; }
   .event-row > img { width: 104px; height: 120px; grid-row: 1 / 3; }
   .event-info { grid-column: 2; }
   .event-date { grid-column: 2; grid-row: 2; }

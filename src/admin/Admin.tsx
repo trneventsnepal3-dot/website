@@ -3,19 +3,21 @@ import { ArrowUpRight, Check, Image, MusicNote, UploadSimple, X } from '@phospho
 import { api, type Media, type Settings } from '../settings'
 import { uploadMedia } from '../upload'
 import './admin.css'
+import EventManager from './EventManager'
 
 function Switch({ checked, onChange, label, disabled = false }: { checked: boolean; onChange: (value: boolean) => void; label: string; disabled?: boolean }) {
   return <button type="button" role="switch" aria-checked={checked} aria-label={label} className="admin-switch" disabled={disabled} onClick={() => onChange(!checked)}><span /></button>
 }
 export default function Admin() {
   const [session, setSession] = useState<'loading' | 'signed-out' | 'signed-in'>('loading')
+  const [tab, setTab] = useState<'media' | 'events'>('media')
   const [settings, setSettings] = useState<Settings | null>(null)
   const [saved, setSaved] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
-  const [uploading, setUploading] = useState<Media['kind'] | null>(null)
+  const [uploading, setUploading] = useState<Exclude<Media['kind'], 'event'> | null>(null)
   const [progress, setProgress] = useState(0)
   const [preview, setPreview] = useState(false)
   const previewDialog = useRef<HTMLDialogElement>(null)
@@ -32,7 +34,7 @@ export default function Admin() {
   useEffect(() => { if (preview) previewDialog.current?.showModal(); else previewDialog.current?.close() }, [preview])
   useEffect(() => { if (previewAudio.current && settings) previewAudio.current.volume = settings.audioVolume }, [settings?.audioVolume, settings?.audio?.url])
   function update<K extends keyof Settings>(key: K, value: Settings[K]) { setSettings(current => current ? { ...current, [key]: value } : current); setNotice('') }
-  async function uploadFile(kind: Media['kind'], file?: File) {
+  async function uploadFile(kind: Exclude<Media['kind'], 'event'>, file?: File) {
     if (!file || !settings) return
     setError(''); setNotice('')
     const accepted = { popup: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], audio: ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4', 'audio/aac'], hero: ['video/mp4', 'video/webm'] }[kind]
@@ -57,7 +59,10 @@ export default function Admin() {
   return <div className="admin-app">
     <header className="admin-header"><a href="/" className="admin-identity">TRN Events <span>Site controls</span></a><div><a href="/" target="_blank" rel="noreferrer">View website <ArrowUpRight size={16} /></a>{session === 'signed-in' && <button disabled={busy || !!uploading} onClick={async () => { setBusy(true); try { await api('admin/logout', 'POST'); setSettings(null); setSession('signed-out'); setPassword(''); setError(''); setNotice('') } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}>Sign out</button>}</div></header>
     {session === 'loading' ? <main className="admin-loading" role="status">Loading site controls…</main> : session === 'signed-out' ? <main className="admin-login"><h1>Admin sign in</h1><p>Sign in to manage what’s playing<br />and what’s on show.</p><form onSubmit={async event => { event.preventDefault(); setBusy(true); setError(''); try { await api('admin/login', 'POST', { password }); setPassword(''); await load() } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}><label htmlFor="admin-password">Admin password</label><input id="admin-password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" maxLength={128} required autoFocus /><button className="admin-primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button></form>{error && <p className="admin-error" role="alert">{error}</p>}</main> : settings && <main className="admin-main">
-      <div className="admin-title"><div><h1>Site settings</h1><p>A poster to announce it. A soundtrack to set the mood.</p></div><div className="admin-save"><span role="status">{dirty ? 'Unsaved changes' : 'All changes saved'}</span><button className="admin-primary" onClick={() => void save()} disabled={!dirty || busy || !!uploading}>{busy ? 'Saving…' : 'Save changes'}{!busy && <Check size={18} />}</button></div></div>
+      <div className="admin-title"><div><h1>{tab === 'media' ? 'Site settings' : 'Live events'}</h1><p>{tab === 'media' ? 'A poster to announce it. A soundtrack to set the mood.' : 'The photo, the place and the date for your next live event.'}</p></div>{tab === 'media' && <div className="admin-save"><span role="status">{dirty ? 'Unsaved changes' : 'All changes saved'}</span><button className="admin-primary" onClick={() => void save()} disabled={!dirty || busy || !!uploading}>{busy ? 'Saving…' : 'Save changes'}{!busy && <Check size={18} />}</button></div>}</div>
+      <nav className="admin-tabs" aria-label="Admin sections"><button aria-pressed={tab === 'media'} onClick={() => setTab('media')} disabled={busy || !!uploading}>Site media{dirty ? ' · Unsaved' : ''}</button><button aria-pressed={tab === 'events'} onClick={() => setTab('events')} disabled={busy || !!uploading}>Live events</button></nav>
+      <div hidden={tab !== 'events'}><EventManager uploadsAvailable={Boolean(settings.uploadsAvailable)} /></div>
+      <div hidden={tab !== 'media'}>
       {error && <div className="admin-message admin-error" role="alert">{error}{error.includes('Reload') && <button onClick={() => { void load().then(() => setError('')).catch(e => setError(e.message)) }}>Reload settings</button>}</div>}
       {notice && <p className="admin-message" role="status">{notice}</p>}
       <fieldset className="admin-edit-fields" disabled={busy}>
@@ -82,6 +87,7 @@ export default function Admin() {
       </fieldset>
       {!settings.uploadsAvailable && <p className="admin-setup-note">Add your Neon object storage credentials to enable uploads.</p>}
       <p className="admin-footer-note">Saved changes appear on new visits immediately and on open pages within 30 seconds.</p>
+      </div>
     </main>}
     <dialog ref={previewDialog} className="admin-preview-dialog" aria-label="Announcement preview" onCancel={() => setPreview(false)}><button aria-label="Close preview" onClick={() => setPreview(false)}><X size={24} /></button>{settings?.popup && <img src={settings.popup.url} alt={settings.popupAlt || 'Popup preview'} />}</dialog>
   </div>

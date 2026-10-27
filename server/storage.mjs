@@ -5,13 +5,14 @@ export const mediaTypes = {
   popup: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   audio: ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4', 'audio/aac'],
   hero: ['video/mp4', 'video/webm'],
+  event: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
 };
-export const mediaLimits = { popup: 10 * 1024 * 1024, audio: 30 * 1024 * 1024, hero: 100 * 1024 * 1024 };
+export const mediaLimits = { popup: 10 * 1024 * 1024, audio: 30 * 1024 * 1024, hero: 100 * 1024 * 1024, event: 10 * 1024 * 1024 };
 const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'video/mp4': 'mp4', 'video/webm': 'webm' };
 export const mediaExtension = type => extensions[type];
 export function createStorage(env = process.env, { client: providedClient, sign = getSignedUrl } = {}) {
   const configured = () => ['AWS_ENDPOINT_URL_S3', 'AWS_REGION', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'].every(key => Boolean(env[key]));
-  const bucket = kind => ({ popup: env.NEON_MEDIA_BUCKET || 'media', audio: env.NEON_SONG_BUCKET || 'song', hero: env.NEON_HERO_BUCKET || 'herosectionvideo' })[kind];
+  const bucket = kind => ({ popup: env.NEON_MEDIA_BUCKET || 'media', event: env.NEON_MEDIA_BUCKET || 'media', audio: env.NEON_SONG_BUCKET || 'song', hero: env.NEON_HERO_BUCKET || 'herosectionvideo' })[kind];
   let client = providedClient;
   function getClient() {
     if (!configured()) throw new Error('Neon object storage credentials are missing.');

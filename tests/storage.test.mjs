@@ -6,7 +6,7 @@ const env = { AWS_ENDPOINT_URL_S3: 'https://branch.storage.example', AWS_REGION:
 test('Neon uses path-style URLs and signs the exact upload size and content type', async () => {
   const storage = createStorage(env);
   assert.equal(storage.configured(), true);
-  assert.equal(storage.bucket('popup'), 'media'); assert.equal(storage.bucket('audio'), 'song'); assert.equal(storage.bucket('hero'), 'herosectionvideo');
+  assert.equal(storage.bucket('popup'), 'media'); assert.equal(storage.bucket('audio'), 'song'); assert.equal(storage.bucket('hero'), 'herosectionvideo'); assert.equal(storage.bucket('event'), 'media');
   const ticket = await storage.authorize({ kind: 'hero', pathname: 'trn/hero/test.mp4', contentType: 'video/mp4', size: 12345 });
   const url = new URL(ticket.url);
   assert.equal(url.hostname, 'branch.storage.example');

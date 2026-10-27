@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-export type Media = { id: string; kind: 'popup' | 'audio' | 'hero'; url: string; name: string; size: number; content_type: string }
+export type Media = { id: string; kind: 'popup' | 'audio' | 'hero' | 'event'; url: string; name: string; size: number; content_type: string }
 export type Settings = { revision: number; effectsEnabled: boolean; popupEnabled: boolean; audioEnabled: boolean; heroVideoEnabled: boolean; popupId: string | null; audioId: string | null; heroId: string | null; popupAlt: string; popupLink: string; audioVolume: number; popup: Media | null; audio: Media | null; hero: Media | null; galleryBaseUrl: string; uploadsAvailable?: boolean }
 export const defaults: Settings = { revision: 0, effectsEnabled: true, popupEnabled: false, audioEnabled: false, heroVideoEnabled: true, popupId: null, audioId: null, heroId: null, popupAlt: '', popupLink: '', audioVolume: .35, popup: null, audio: null, hero: null, galleryBaseUrl: '' }
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {

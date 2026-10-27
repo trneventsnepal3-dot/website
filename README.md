@@ -53,6 +53,8 @@ Files upload directly from the browser to Neon using a short-lived signed URL is
 
 ## Site controls
 
+The **Live events** tab lets administrators add, edit, hide and remove listings. Each event has a photo uploaded to the `media` bucket, an event name, a location, and a full date including the year. Events save separately from site-media settings. Visible listings appear in chronological order; an empty list hides the public events section. The initial Sushant KC Live listing is dated **28 March 2027**. The migration seeds it once and preserves subsequent edits or removal.
+
 - **Site media** turns the popup, soundtrack and hero film off together while retaining their individual settings.
 - **Announcement popup** accepts a JPG, PNG, WebP or GIF up to 10 MB, a description and optional HTTPS link. It appears once per browser tab for each uploaded image.
 - **Looping soundtrack** accepts audio up to 30 MB and a starting volume. Visitors can play/pause it. Browsers that block automatic audio require the visitor to press play.
