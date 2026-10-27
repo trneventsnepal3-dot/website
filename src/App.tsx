@@ -116,7 +116,7 @@ function App() {
       </main>
       <footer className="footer section-pad" id="contact">
         <div className="footer-top">
-          <div className="footer-invite" data-reveal><h2>Your next great night.</h2><a href="mailto:trneventsnepal3@gmail.com">trneventsnepal3@gmail.com</a></div>
+          <div className="footer-invite" data-reveal><h2>Your next great night.</h2><a className="button footer-email" href="mailto:trneventsnepal3@gmail.com"><span>trneventsnepal3@gmail.com</span><ArrowUpRight size={20} aria-hidden="true" /></a></div>
           <div className="footer-socials" data-reveal>{socials.map(social => <a key={social.label} href={social.href} target="_blank" rel="noreferrer">{social.label}</a>)}</div>
           <div className="footer-partner" data-reveal><p>Our friends at</p><a href="https://mamagharentertainment.com" target="_blank" rel="noreferrer">Mamaghar<br />Entertainment</a></div>
         </div>

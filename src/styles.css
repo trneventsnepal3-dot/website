@@ -87,6 +87,9 @@ svg { flex-shrink: 0; }
 .footer-top { display: grid; grid-template-columns: 1.7fr .65fr .65fr; gap: 40px; align-items: start; }
 .footer-invite h2 { margin-bottom: 36px; }
 .footer-invite a { font-size: var(--size-body); overflow-wrap: anywhere; }
+.footer-email { max-width: 100%; gap: 16px; padding-inline: 18px; }
+.footer-email span { min-width: 0; }
+.footer-email:focus-visible { outline-color: var(--ink); }
 .footer-socials { display: flex; flex-direction: column; align-items: start; gap: 4px; }
 .footer-socials a { display: inline-flex; align-items: center; min-height: 36px; font-size: var(--size-body); }
 .footer-partner p { font-size: var(--size-small); color: var(--soft-ink); margin-bottom: 8px; }
@@ -108,6 +111,7 @@ dialog::backdrop { background: rgb(0 0 0 / 85%); }
 @media (hover: hover) {
   .button:hover svg, .text-button:hover svg { transform: translate(3px, -2px); }
   .site-header a:hover, .footer a:not(.footer-wordmark):hover, .video-control:hover { opacity: .72; }
+  .footer .footer-email:hover { opacity: 1; background: #b71334; }
   .gallery-photo:hover img { transform: scale(1.035); }
   .gallery-photo:hover .photo-open { opacity: 1; transform: none; }
   .icon-button:hover { transform: translateY(-2px); }
