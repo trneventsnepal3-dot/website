@@ -1,34 +1,14 @@
-import { ArrowUpRight } from '@phosphor-icons/react'
 import './events.css'
 
-type EventsProps = {
-  onContact: () => void
-}
-
-const upcomingEvents = [
-  { month: 'MAR', day: '28', title: 'SUSHANT KC LIVE', venue: 'United Kingdom' },
-]
-
-function RollingLabel({ children }: { children: string }) {
-  return <span className="rolling-label"><span>{children}</span><span aria-hidden="true">{children}</span></span>
-}
-
-export default function UpcomingEvents({ onContact }: EventsProps) {
+export default function UpcomingEvents({ photoBaseUrl = '/media' }: { photoBaseUrl?: string }) {
   return (
-    <section className="upcoming section-pad" id="upcoming" aria-labelledby="upcoming-title">
-      <div className="events-heading">
-        <span className="tiny-label">[ UP NEXT ]</span>
-        <h2 id="upcoming-title">UPCOMING <span className="red-text">LIVE EVENTS.</span></h2>
-      </div>
-      <div className="event-list">
-        {upcomingEvents.map((event) => (
-          <article className="event-row" key={event.title}>
-            <div className="event-date" aria-hidden="true"><span className="event-month">{event.month}</span><span className="event-day">{event.day}</span></div>
-            <div className="event-info"><h3>{event.title}</h3><p>{event.venue}</p></div>
-            <button className="button button-red cornered" onClick={onContact}><RollingLabel>SIGN ME UP</RollingLabel><ArrowUpRight size={14} /></button>
-          </article>
-        ))}
-      </div>
+    <section className="events section-pad" id="upcoming" aria-labelledby="events-title">
+      <div className="events-heading" data-reveal><h2 id="events-title">Live events.</h2></div>
+      <article className="event-row" data-reveal>
+        <img src={`${photoBaseUrl}/IMG_0674.JPG.jpeg`} alt="A live performance from the TRN photo archive" width="240" height="180" loading="lazy" />
+        <div className="event-info"><h3>Sushant KC Live</h3><p>United Kingdom</p></div>
+        <div className="event-date"><p>28 March</p></div>
+      </article>
     </section>
   )
 }

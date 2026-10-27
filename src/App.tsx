@@ -1,199 +1,142 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Pause, Play, X } from '@phosphor-icons/react'
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Pause, Play, X } from '@phosphor-icons/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import Lenis from 'lenis'
-
 import UpcomingEvents from './components/Events'
-import ContactDialog from './components/ContactDialog'
-import WelcomeDialog from './components/WelcomeDialog'
+import SiteMedia from './components/SiteMedia'
+import { useSiteSettings } from './settings'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const socials = [
-  { label: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61573707875970' },
   { label: 'Instagram', href: 'https://www.instagram.com/trn_events_nepal/?hl=en' },
+  { label: 'Facebook', href: 'https://www.facebook.com/profile.php?id=61573707875970' },
   { label: 'TikTok', href: 'https://www.tiktok.com/@trn_events_nepal' },
 ]
-const experiences = [
-  { title: 'AFTER DARK.', category: 'Live events', image: 'https://images.pexels.com/photos/13230484/pexels-photo-13230484.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800', alt: 'An audience beneath purple spotlights at a live concert', description: 'The lights drop. The crowd comes alive. We bring together the stage, sound, production, and people for a night that stays with you.' },
-  { title: 'FESTIVAL SEASON.', category: 'Live events', image: 'https://images.pexels.com/photos/3563172/pexels-photo-3563172.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800', alt: 'A huge outdoor music festival stage at night', description: 'Weekends built for thousands. Big stages, bigger sounds, and a sea of people moving as one from the opening act to the final encore.' },
-  { title: 'CLUB NIGHTS.', category: 'Live events', image: 'https://images.pexels.com/photos/9005458/pexels-photo-9005458.jpeg?auto=compress&cs=tinysrgb&w=1200&h=800', alt: 'A DJ performing in magenta stage light', description: 'Dance floors, strobes, and sweat. Late sets where the DJ takes over and the room lets go until the lights come up.' },
+const photos = [
+  { file: 'IMG_0675.JPG.jpeg', caption: 'The stage is yours.', alt: 'A performer in a red jacket at the end of a stage surrounded by fans' },
+  { file: 'IMG_0665.JPEG', caption: 'Closer to the music.', alt: 'A singer leans towards the audience at the front of the stage' },
+  { file: 'IMG_0662.JPEG', caption: 'Every voice in the room.', alt: 'The front rows sing along as a performer kneels beside the crowd' },
+  { file: 'IMG_0661.JPEG', caption: 'A night turned all the way up.', alt: 'Flames rise above the stage as a performer faces the crowd' },
+  { file: 'IMG_0666.JPEG', caption: 'A moment shared.', alt: 'Two performers on stage in front of a packed audience' },
+  { file: 'IMG_0669.JPEG', caption: 'Under the stage lights.', alt: 'Performers and a camera operator lit by stage pyrotechnics' },
+  { file: 'IMG_0673.JPEG', caption: 'Front-row energy.', alt: 'The crowd raises their hands beside a plume of stage fire' },
+  { file: 'IMG_0674.JPG.jpeg', caption: 'One more song.', alt: 'A singer holds the microphone while facing a crowd of phone lights' },
+  { file: 'IMG_0676.JPG.jpeg', caption: 'The whole crowd, together.', alt: 'A wide view of the concert stage and audience at night' },
 ]
-const picSources = [
-  'https://images.pexels.com/photos/13202532/pexels-photo-13202532.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/22604116/pexels-photo-22604116.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/5193526/pexels-photo-5193526.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/5191480/pexels-photo-5191480.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/5152571/pexels-photo-5152571.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/1179581/pexels-photo-1179581.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/167605/pexels-photo-167605.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/5192273/pexels-photo-5192273.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-  'https://images.pexels.com/photos/7081216/pexels-photo-7081216.jpeg?auto=compress&cs=tinysrgb&w=940&h=650',
-]
-
-function randomize<T>(items: readonly T[]): T[] {
-  const a = [...items]
-  do {
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[a[i], a[j]] = [a[j], a[i]]
-    }
-  } while (a.some((v, i) => v === a[(i + 1) % a.length]))
-  return a
-}
-
-const heroGalleryImages = randomize(picSources)
-const momentsCarouselImages = randomize(picSources)
-
-function RollingLabel({ children }: { children: string }) {
-  return <span className="rolling-label"><span>{children}</span><span aria-hidden="true">{children}</span></span>
-}
 
 function App() {
+  const settings = useSiteSettings()
+  const filmEnabled = settings.effectsEnabled && settings.heroVideoEnabled
+  const filmSource = settings.hero?.url || '/media/hero-video.mp4'
+  const photoSource = (file: string) => `${settings.galleryBaseUrl || '/media'}/${encodeURIComponent(file)}`
   const root = useRef<HTMLDivElement>(null)
-  const lenis = useRef<Lenis | null>(null)
-  const projectDialog = useRef<HTMLDialogElement>(null)
-  const [contactOpen, setContactOpen] = useState(false)
-  const [eventType, setEventType] = useState<string>()
-  const [selectedProject, setSelectedProject] = useState<number | null>(null)
-  const [motionPaused, setMotionPaused] = useState(false)
-  const [welcomeOpen, setWelcomeOpen] = useState(true)
+  const video = useRef<HTMLVideoElement>(null)
+  const photoDialog = useRef<HTMLDialogElement>(null)
+  const photoTrigger = useRef<HTMLElement | null>(null)
+  const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null)
+  const [videoPlaying, setVideoPlaying] = useState(false)
 
-  const openContact = (type?: string) => {
-    setSelectedProject(null)
-    setEventType(type)
-    setContactOpen(true)
-  }
+  const openPhoto = (index: number) => { photoTrigger.current = document.activeElement as HTMLElement; setSelectedPhoto(index) }
+  const closePhoto = () => { setSelectedPhoto(null); photoTrigger.current?.focus({ preventScroll: true }) }
+  const changePhoto = (step: number) => setSelectedPhoto(current => current === null ? null : (current + step + photos.length) % photos.length)
 
   useEffect(() => {
     const media = gsap.matchMedia()
-    media.add('(prefers-reduced-motion: no-preference)', () => {
-      const smooth = new Lenis({ duration: 1.15, smoothWheel: true, anchors: true })
-      lenis.current = smooth
-      smooth.on('scroll', ScrollTrigger.update)
-      const tick = (time: number) => smooth.raf(time * 1000)
-      gsap.ticker.add(tick)
-      gsap.ticker.lagSmoothing(0)
-      return () => { gsap.ticker.remove(tick); smooth.destroy(); lenis.current = null }
-    })
-    const ctx = gsap.context(() => {
+    const context = gsap.context(() => {
       media.add('(prefers-reduced-motion: no-preference)', () => {
-        gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach((element) => {
-          gsap.from(element, { y: 55, opacity: 0, duration: 0.95, ease: 'power3.out', scrollTrigger: { trigger: element, start: 'top 90%', once: true } })
+        gsap.from('.hero-title span', { y: 24, opacity: 0, stagger: .08, duration: .9, ease: 'power3.out', clearProps: 'opacity' })
+        gsap.to('.hero-title', { scale: .96, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } })
+        gsap.utils.toArray<HTMLElement>('[data-reveal]').forEach(element => {
+          gsap.from(element, { y: 24, opacity: 0, duration: .7, ease: 'power3.out', clearProps: 'all', scrollTrigger: { trigger: element, start: 'top 94%', once: true } })
         })
-        gsap.utils.toArray<HTMLElement>('.parallax-image').forEach((element) => {
-          gsap.fromTo(element, { yPercent: -7 }, { yPercent: 7, ease: 'none', scrollTrigger: { trigger: element.parentElement, start: 'top bottom', end: 'bottom top', scrub: true } })
-        })
-        gsap.fromTo('.statement .soft-word', { opacity: 0.2 }, { opacity: 1, stagger: 0.2, scrollTrigger: { trigger: '.statement', start: 'top 70%', end: 'bottom 75%', scrub: true } })
-      })
-      media.add('(min-width: 768px) and (prefers-reduced-motion: no-preference)', () => {
-        const track = document.querySelector<HTMLElement>('.project-track')!
-        gsap.to(track, { x: () => -(track.scrollWidth - window.innerWidth + window.innerWidth * 0.04), ease: 'none', scrollTrigger: { trigger: '.projects', start: 'top top', end: () => `+=${track.scrollWidth - window.innerWidth}`, pin: true, scrub: 0.8, invalidateOnRefresh: true } })
+        gsap.fromTo('.footer-wordmark', { scale: .96 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: '.footer', start: 'top bottom', end: 'bottom bottom', scrub: true } })
       })
     }, root)
-    const header = document.querySelector<HTMLElement>('.site-header')!
-    let lightRanges: [number, number][] = []
-    const updateHeader = () => {
-      const current = window.scrollY + 44
-      const light = lightRanges.some(([start, end]) => current >= start && current < end)
-      header.classList.toggle('is-light', light)
-    }
-    const measureRanges = () => {
-      lightRanges = [...document.querySelectorAll<HTMLElement>('.moments, .footer')].map(element => {
-        const rect = element.getBoundingClientRect()
-        return [rect.top + window.scrollY, rect.bottom + window.scrollY]
-      })
-      updateHeader()
-    }
-    const headerTrigger = ScrollTrigger.create({ start: 0, end: 'max', onUpdate: updateHeader, onRefresh: measureRanges })
-    const refresh = () => { ScrollTrigger.refresh(); measureRanges() }
-    void document.fonts.ready.then(refresh)
-    window.addEventListener('load', refresh)
-    return () => { window.removeEventListener('load', refresh); headerTrigger.kill(); ctx.revert(); media.revert() }
+    void document.fonts.ready.then(() => ScrollTrigger.refresh())
+    return () => { media.revert(); context.revert() }
   }, [])
 
   useEffect(() => {
-    if (selectedProject !== null) projectDialog.current?.showModal()
-    else projectDialog.current?.close()
-  }, [selectedProject])
+    const player = video.current
+    if (!player) return
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const updateMotion = () => { if (motion.matches || !filmEnabled) player.pause(); else void player.play().catch(() => setVideoPlaying(false)) }
+    updateMotion()
+    motion.addEventListener('change', updateMotion)
+    return () => motion.removeEventListener('change', updateMotion)
+  }, [filmEnabled, filmSource])
 
   useEffect(() => {
-    const locked = contactOpen || selectedProject !== null
-    if (locked) lenis.current?.stop()
-    else lenis.current?.start()
-    document.body.style.overflow = locked ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
-  }, [contactOpen, selectedProject])
+    const dialog = photoDialog.current
+    if (selectedPhoto !== null && !dialog?.open) dialog?.showModal()
+    if (selectedPhoto === null && dialog?.open) dialog.close()
+  }, [selectedPhoto])
+  useEffect(() => {
+    const previous = document.body.style.overflow
+    if (selectedPhoto !== null) document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [selectedPhoto])
+  const activePhoto = selectedPhoto === null ? null : photos[selectedPhoto]
 
   return (
-    <div ref={root} className={motionPaused ? 'site motion-paused' : 'site'}>
+    <div className="site" ref={root}>
       <a className="skip-link" href="#main">Skip to content</a>
       <header className="site-header">
-        <div className="header-left">
-          <a href="#home" className="brand-mark" aria-label="TRN Events home">TRN<span className="brand-period">.</span></a>
-        </div>
+        <nav aria-label="Main navigation"><a href="#upcoming">Events</a><a href="#projects">Gallery</a><a href="#about">About</a></nav>
       </header>
-
       <main id="main">
-        <section className="trn-way section-pad" id="home">
-          <div className="trn-way-carousel" aria-label="Event photo gallery scrolling automatically." role="region" tabIndex={0}>
-            <div className="trn-way-carousel-track">{[0, 1].map((copy) => <div className="trn-way-carousel-group" key={copy} aria-hidden={copy === 1}>{heroGalleryImages.map((image) => <div className="trn-way-carousel-item" key={`${copy}-${image}`}><img src={image} alt="TRN NEPAL event" draggable={false} loading="lazy" /></div>)}</div>)}</div>
-          </div>
-          <div className="trn-way-content">
-            <div className="trn-way-left">
-              <span className="tiny-label" data-reveal>[ THE TRN WAY ]</span>
-              <h2 data-reveal>BRING THE PEOPLE.<br />BUILD THE <span className="trn-way-accent">FEELING.</span><br />MAKE IT UNFORGETTABLE.</h2>
-            </div>
-            <div className="trn-way-right" data-reveal>
-              <div className="trn-way-description"><ArrowDownRight size={42} weight="light" /><p>From the first idea to the final encore, we bring your world together. It's a feeling. Let's make it last.</p></div>
-              <a href="#about" className="trn-way-link"><RollingLabel>MEET TRN EVENTS</RollingLabel><ArrowUpRight size={19} /></a>
-            </div>
-          </div>
+        <section className="hero" id="home" aria-labelledby="hero-title">
+          <div className="hero-media">{filmEnabled ? <video ref={video} src={filmSource} poster={photoSource('hero-poster.jpg')} muted loop playsInline preload="metadata" onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} aria-label="TRN concert footage" /> : <img src={photoSource('hero-poster.jpg')} alt="TRN concert crowd under stage lights" />}</div>
+          <div className="hero-shade" />
+          <h1 className="hero-title" id="hero-title"><span>TRN EVENTS</span><span>NEPAL</span></h1>
+          <div className="hero-copy"><p>Live music. Shared nights.<br />We bring the stage, the sound<br className="desktop-break" /> and the people together.</p><a className="button" href="#upcoming">Explore events <ArrowDown size={20} aria-hidden="true" /></a></div>
+          {filmEnabled && <button className="video-control" onClick={() => {
+            if (!video.current) return
+            if (video.current.paused) void video.current.play().catch(() => setVideoPlaying(false))
+            else video.current.pause()
+          }} aria-label={videoPlaying ? 'Pause background video' : 'Play background video'} aria-pressed={videoPlaying}>
+            {videoPlaying ? <Pause size={17} weight="fill" aria-hidden="true" /> : <Play size={17} weight="fill" aria-hidden="true" />}<span>{videoPlaying ? 'Pause film' : 'Play film'}</span>
+          </button>}
         </section>
-
-        <UpcomingEvents onContact={openContact} />
-
-        <section className="projects" id="projects">
-          <div className="project-heading"><div><span className="tiny-label">[ EVENT INSPIRATION ]</span><h2>PAST <span className="red-text">EVENTS.</span></h2></div><button className="button button-red cornered" onClick={() => openContact()}><RollingLabel>MAKE YOUR MOMENT</RollingLabel><ArrowUpRight size={16} /></button></div>
-          <div className="project-track">
-            {experiences.map((project, index) => <button className="project-card" key={project.title} onClick={() => setSelectedProject(index)} aria-label={`Explore ${project.category.toLowerCase()}`}>
-              <div className="project-image"><img src={project.image} alt={project.alt} loading="lazy" width="1200" height="800" /><span className="project-view">EXPLORE<ArrowUpRight size={22} /></span></div>
-              <div className="project-caption"><h3>{project.title}</h3><span className="tiny-label">{project.category}<ArrowUpRight size={18} /></span></div>
-            </button>)}
-          </div>
-          <div className="projects-bottom"><span className="tiny-label">LIVE EVENTS / CONCERTS / FESTIVALS</span><span className="project-direction" aria-hidden="true"><ArrowRight size={28} /></span></div>
+        <UpcomingEvents photoBaseUrl={settings.galleryBaseUrl || '/media'} />
+        <section className="gallery section-pad" id="projects" aria-labelledby="gallery-title">
+          <div className="section-heading"><h2 id="gallery-title" data-reveal>You had to be there.</h2><p data-reveal>From the front row <br />to the final encore.</p></div>
+          <div className="gallery-grid">{photos.slice(0, 4).map((photo, index) => (
+            <button className={`gallery-photo gallery-photo-${index}`} key={photo.file} onClick={() => openPhoto(index)} aria-label={`Open photo: ${photo.alt}`} data-reveal>
+              <img src={photoSource(photo.file)} alt={photo.alt} width={index === 0 ? 1600 : 1000} height={index === 0 ? 1067 : 1000} loading="lazy" /><span className="photo-open" aria-hidden="true"><ArrowUpRight size={24} /></span>
+            </button>
+          ))}</div>
+          <div className="gallery-bottom" data-reveal><p>On stage. In the crowd. All together.</p><button className="text-button" onClick={() => openPhoto(0)}>View all 9 photos <ArrowRight size={20} aria-hidden="true" /></button></div>
         </section>
-
-        <section className="about section-pad" id="about">
-          <div className="about-intro"><h2 data-reveal>WE’RE<br />TRN<span className="red-text">.</span></h2><div className="about-copy" data-reveal><span className="tiny-label">[ THE PEOPLE BEHIND THE MOMENT ]</span><p>Big crowds. Close friends. Bold ideas. Whatever brings you together, we make it an experience worth showing up for.</p><p className="muted-text">We’re a hands-on events team with a love for the details. The sound, the space, the atmosphere. It all matters.</p></div></div>
-          <div className="statement"><h2><span className="soft-word">FROM THE FIRST</span> <span className="soft-word red-text">“WHAT IF”</span><br /><span className="soft-word">TO THE FINAL</span> <span className="soft-word red-text">“ONE MORE.”</span><br /><span className="soft-word">WE’RE ALL IN.</span></h2></div>
+        <section className="about section-pad" id="about" aria-labelledby="about-title">
+          <div className="about-heading"><h2 id="about-title" data-reveal>The TRN way.</h2><p data-reveal>Live events, concerts and festivals.</p></div>
+          <div className="about-copy"><p className="about-lead" data-reveal>You bring the people.<br />We bring it together.</p><p data-reveal>From the first idea to the final encore, our team brings together the stage, sound and production. We take care of the details that make a night worth remembering.</p></div>
         </section>
-
-        <div className="process-marquee" aria-label="Our process: Dream it, Plan it, Build it, Live it">
-          <div className="marquee-track" aria-hidden="true">{[0, 1].map((copy) => <div className="marquee-group" key={copy}><span>DREAM IT</span><ArrowRight /><span>PLAN IT</span><ArrowRight /><span>BUILD IT</span><ArrowRight /><span>LIVE IT</span><ArrowRight /></div>)}</div>
-          <button className="motion-toggle" onClick={() => setMotionPaused(!motionPaused)} aria-label={motionPaused ? 'Play moving text' : 'Pause moving text'}>{motionPaused ? <Play size={14} /> : <Pause size={14} />}</button>
-        </div>
-
-        <section className="moments section-pad" aria-labelledby="moments-title">
-          <div className="moments-heading"><span className="tiny-label">[ THE BIG PICTURE. THE LITTLE DETAILS. ]</span><span className="tiny-label">THAT’S WHERE THE MAGIC IS.</span></div>
-          <div className="moment-gallery"><div className="moment-track">{[0, 1].map((copy) => <div className="moment-group" key={copy} aria-hidden={copy === 1}>{momentsCarouselImages.map((image) => <div className="moment-image" key={`${copy}-${image}`}><img src={image} alt="TRN NEPAL event" loading="lazy" /></div>)}</div>)}</div></div>
-          <div className="moments-footer"><h2 id="moments-title" data-reveal>LESS ORDINARY.<br /><span className="red-text">MORE “YOU HAD TO BE THERE.”</span></h2><button className="button button-red cornered" onClick={() => openContact()}><RollingLabel>MAKE YOUR MOMENT</RollingLabel><ArrowUpRight size={16} /></button></div>
-        </section>
-
-        <footer className="footer section-pad" id="contact">
-          <div className="footer-main"><a className="footer-brand" href="#home" aria-label="TRN NEPAL home">TRN<span className="red-text">.</span><br />NEPAL</a><div className="footer-links"><span className="tiny-label">FOLLOW US</span>{socials.map((item) => <a key={item.label} href={item.href} target="_blank" rel="noreferrer">{item.label}<ArrowUpRight size={15} /></a>)}</div><div className="footer-note"><span className="tiny-label">GOOD PEOPLE. GREAT MOMENTS.</span><p>Bring your idea.<br />We’ll bring the energy.</p><a href="mailto:trneventsnepal3@gmail.com">trneventsnepal3@gmail.com</a></div></div>
-          <div className="footer-bottom"><span>© {new Date().getFullYear()} TRN EVENTS. ALL RIGHTS RESERVED.</span><span>MADE TO BE FELT.</span><a href="#home">BACK TO TOP <ArrowUpRight size={14} /></a></div>
-        </footer>
       </main>
-
-      <dialog className="project-dialog" ref={projectDialog} onCancel={() => setSelectedProject(null)} onClick={(event) => { if (event.target === event.currentTarget) setSelectedProject(null) }} aria-labelledby="project-title" data-lenis-prevent>
-        {selectedProject !== null && <div className="project-dialog-inner"><button className="dialog-close" onClick={() => setSelectedProject(null)} aria-label="Close event inspiration" autoFocus><X size={24} /></button><img className="project-dialog-image" src={experiences[selectedProject].image} alt={experiences[selectedProject].alt} /><div className="project-dialog-copy"><span className="tiny-label">{experiences[selectedProject].category} / EVENT INSPIRATION</span><h2 id="project-title">{experiences[selectedProject].title}</h2><p>{experiences[selectedProject].description}</p><button className="button button-red" onClick={() => openContact(experiences[selectedProject].category)}>MAKE SOMETHING LIKE THIS<ArrowUpRight size={18} /></button></div></div>}
+      <footer className="footer section-pad" id="contact">
+        <div className="footer-top">
+          <div className="footer-invite" data-reveal><h2>Your next great night.</h2><a href="mailto:trneventsnepal3@gmail.com">trneventsnepal3@gmail.com</a></div>
+          <div className="footer-socials" data-reveal>{socials.map(social => <a key={social.label} href={social.href} target="_blank" rel="noreferrer">{social.label}</a>)}</div>
+          <div className="footer-partner" data-reveal><p>Our friends at</p><a href="https://mamagharentertainment.com" target="_blank" rel="noreferrer">Mamaghar<br />Entertainment</a></div>
+        </div>
+        <a className="footer-wordmark" href="#home" aria-label="TRN Nepal, back to top">TRN NEPAL</a>
+        <div className="footer-bottom"><p>© {new Date().getFullYear()} TRN Events Nepal</p><a href="#home">Back to top ↑</a></div>
+      </footer>
+      <SiteMedia settings={settings} />
+      <dialog ref={photoDialog} className="photo-dialog" aria-labelledby="photo-title" onCancel={closePhoto} onClose={() => { if (selectedPhoto !== null) closePhoto() }} onClick={event => {
+        if (event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closePhoto() }
+      }} onKeyDown={event => {
+        if (event.key === 'ArrowRight') { event.preventDefault(); changePhoto(1) }
+        if (event.key === 'ArrowLeft') { event.preventDefault(); changePhoto(-1) }
+      }}>
+        {activePhoto && <>
+          <button className="photo-close icon-button" onClick={closePhoto} aria-label="Close photo viewer" autoFocus><X size={24} /></button>
+          <img className="photo-dialog-image" src={photoSource(activePhoto.file)} alt={activePhoto.alt} />
+          <div className="photo-dialog-bottom"><div aria-live="polite"><h2 id="photo-title">{activePhoto.caption}</h2><p>{(selectedPhoto ?? 0) + 1} of {photos.length}</p></div><div className="photo-controls"><button className="icon-button" onClick={() => changePhoto(-1)} aria-label="Previous photo"><ArrowLeft size={23} /></button><button className="icon-button" onClick={() => changePhoto(1)} aria-label="Next photo"><ArrowRight size={23} /></button></div></div>
+        </>}
       </dialog>
-      <ContactDialog open={contactOpen} onClose={() => setContactOpen(false)} eventType={eventType} />
-      <WelcomeDialog open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
     </div>
   )
 }
-
 export default App
