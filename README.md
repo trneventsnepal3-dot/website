@@ -47,7 +47,7 @@ Until this command is run, the original gallery and hero continue using the loca
 
 ## Vercel deployment
 
-Import this repository as a Vite project using Node 22 or newer. Copy the environment variables from `.env.example` into Vercel project environment settings, with their real values. Run the migration against the target Neon database and configure the deployed domain with `storage:cors`. The API runs in Vercel Node functions; `vercel.json` serves React at `/admin`.
+Import this repository as a Vite project using Node 22 or newer. Copy the environment variables from `.env.example` into Vercel project environment settings, with their real values. Run the migration against the target Neon database and configure the deployed domain with `storage:cors`. The API runs in one Vercel Node function: `vercel.json` rewrites all `/api/*` paths to `api/router.js`, including nested admin and event routes, and serves React at `/admin`. Do not replace this with a Next.js-style catch-all filename; this is a Vite application.
 
 Files upload directly from the browser to Neon using a short-lived signed URL issued only to signed-in administrators. File size and content type are checked before authorization and verified again against storage before registration. Secrets stay on the server. Stored URLs are public and stable; no media bytes pass through Vercel's upload body limit.
 

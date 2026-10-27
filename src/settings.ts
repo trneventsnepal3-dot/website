@@ -5,7 +5,9 @@ export const defaults: Settings = { revision: 0, effectsEnabled: true, popupEnab
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`/api/${path}`, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-TRN-Admin': '1' }, body: body === undefined ? undefined : JSON.stringify(body) })
   let data
-  try { data = await response.json() } catch { throw new Error('The server could not be reached. Start the app with npm run dev, or check the Vercel API deployment.') }
+  try { data = await response.json() } catch {
+    throw new Error(response.status === 404 ? 'The API route was not found. Refresh after the latest deployment finishes.' : `The API returned an unexpected response (HTTP ${response.status}). Please try again.`)
+  }
   if (!response.ok) throw Object.assign(new Error(data.error || 'Something went wrong.'), { status: response.status })
   return data as T
 }
