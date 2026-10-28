@@ -4,6 +4,7 @@ import { api, type Media, type Settings } from '../settings'
 import { uploadMedia } from '../upload'
 import './admin.css'
 import EventManager from './EventManager'
+import GalleryManager from './GalleryManager'
 
 function Switch({ checked, onChange, label, disabled = false }: { checked: boolean; onChange: (value: boolean) => void; label: string; disabled?: boolean }) {
   return <button type="button" role="switch" aria-checked={checked} aria-label={label} className="admin-switch" disabled={disabled} onClick={() => onChange(!checked)}><span /></button>
@@ -17,7 +18,7 @@ export default function Admin() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
-  const [uploading, setUploading] = useState<Exclude<Media['kind'], 'event'> | null>(null)
+  const [uploading, setUploading] = useState<Exclude<Media['kind'], 'event' | 'gallery'> | null>(null)
   const [progress, setProgress] = useState(0)
   const [preview, setPreview] = useState(false)
   const previewDialog = useRef<HTMLDialogElement>(null)
@@ -34,7 +35,7 @@ export default function Admin() {
   useEffect(() => { if (preview) previewDialog.current?.showModal(); else previewDialog.current?.close() }, [preview])
   useEffect(() => { if (previewAudio.current && settings) previewAudio.current.volume = settings.audioVolume }, [settings?.audioVolume, settings?.audio?.url])
   function update<K extends keyof Settings>(key: K, value: Settings[K]) { setSettings(current => current ? { ...current, [key]: value } : current); setNotice('') }
-  async function uploadFile(kind: Exclude<Media['kind'], 'event'>, file?: File) {
+  async function uploadFile(kind: Exclude<Media['kind'], 'event' | 'gallery'>, file?: File) {
     if (!file || !settings) return
     setError(''); setNotice('')
     const accepted = { popup: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], audio: ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4', 'audio/aac'], hero: ['video/mp4', 'video/webm'] }[kind]
@@ -59,7 +60,7 @@ export default function Admin() {
   return <div className="admin-app">
     <header className="admin-header"><a href="/" className="admin-identity">TRN Events <span>Site controls</span></a><div><a href="/" target="_blank" rel="noreferrer">View website <ArrowUpRight size={16} /></a>{session === 'signed-in' && <button disabled={busy || !!uploading} onClick={async () => { setBusy(true); try { await api('admin/logout', 'POST'); setSettings(null); setSession('signed-out'); setPassword(''); setError(''); setNotice('') } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}>Sign out</button>}</div></header>
     {session === 'loading' ? <main className="admin-loading" role="status">Loading site controls…</main> : session === 'signed-out' ? <main className="admin-login"><h1>Admin sign in</h1><p>Sign in to manage what’s playing<br />and what’s on show.</p><form onSubmit={async event => { event.preventDefault(); setBusy(true); setError(''); try { await api('admin/login', 'POST', { password }); setPassword(''); await load() } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}><label htmlFor="admin-password">Admin password</label><input id="admin-password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" maxLength={128} required autoFocus /><button className="admin-primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button></form>{error && <p className="admin-error" role="alert">{error}</p>}</main> : settings && <main className="admin-main">
-      <div className="admin-title"><div><h1>{tab === 'media' ? 'Site settings' : 'Live events'}</h1><p>{tab === 'media' ? 'A poster to announce it. A soundtrack to set the mood.' : 'The photo, the place and the date for your next live event.'}</p></div>{tab === 'media' && <div className="admin-save"><span role="status">{dirty ? 'Unsaved changes' : 'All changes saved'}</span><button className="admin-primary" onClick={() => void save()} disabled={!dirty || busy || !!uploading}>{busy ? 'Saving…' : 'Save changes'}{!busy && <Check size={18} />}</button></div>}</div>
+      <div className="admin-title"><div><h1>{tab === 'media' ? 'Site settings' : 'Live events'}</h1><p>{tab === 'media' ? 'A poster to announce it. A soundtrack to set the mood.' : 'The photo, the place and the date for your next live event.'}</p></div>{tab === 'media' && <div className="admin-save"><span role="status">{dirty ? 'Unsaved media changes' : 'Media settings saved'}</span><button className="admin-primary" onClick={() => void save()} disabled={!dirty || busy || !!uploading}>{busy ? 'Saving…' : 'Save changes'}{!busy && <Check size={18} />}</button></div>}</div>
       <nav className="admin-tabs" aria-label="Admin sections"><button aria-pressed={tab === 'media'} onClick={() => setTab('media')} disabled={busy || !!uploading}>Site media{dirty ? ' · Unsaved' : ''}</button><button aria-pressed={tab === 'events'} onClick={() => setTab('events')} disabled={busy || !!uploading}>Live events</button></nav>
       <div hidden={tab !== 'events'}><EventManager uploadsAvailable={Boolean(settings.uploadsAvailable)} /></div>
       <div hidden={tab !== 'media'}>
@@ -85,6 +86,7 @@ export default function Admin() {
         </section><section className="admin-panel admin-film"><div className="admin-panel-heading"><h2>Hero film</h2><Switch label="Enable hero video" checked={settings.heroVideoEnabled} onChange={v => update('heroVideoEnabled', v)} disabled={busy} /></div><p className="admin-description">Opening concert footage. The still poster stays visible when switched off.</p><div className="admin-file-row"><label className={`admin-upload ${!settings.uploadsAvailable || uploading ? 'is-disabled' : ''}`}><UploadSimple size={17} />{uploading === 'hero' ? `Uploading ${progress}%` : settings.hero ? 'Replace video' : 'Upload video'}<input aria-label="Hero video file" type="file" accept="video/mp4,video/webm" disabled={!settings.uploadsAvailable || !!uploading || busy} onChange={e => { void uploadFile('hero', e.target.files?.[0]); e.target.value = '' }} /></label><a href={settings.hero?.url || '/media/hero-video.mp4'} target="_blank" rel="noreferrer">Preview film <ArrowUpRight size={14} /></a></div><p className="admin-file-help">{settings.hero ? settings.hero.name : 'MP4 or WebM · Up to 100 MB'}</p>{settings.hero && <button className="admin-remove" onClick={() => { setSettings(s => s ? { ...s, hero: null, heroId: null } : s); setNotice('') }}>Use original film</button>}</section></div>
       </div>
       </fieldset>
+      <GalleryManager uploadsAvailable={Boolean(settings.uploadsAvailable)} disabled={busy||!!uploading} />
       {!settings.uploadsAvailable && <p className="admin-setup-note">Add your Neon object storage credentials to enable uploads.</p>}
       <p className="admin-footer-note">Saved changes appear on new visits immediately and on open pages within 30 seconds.</p>
       </div>
