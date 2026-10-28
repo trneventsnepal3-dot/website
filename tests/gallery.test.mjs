@@ -19,10 +19,10 @@ test('gallery preserves originals and supports authenticated upload, edits, remo
     const shared=originals.find(p=>p.name==='IMG_0674.JPG.jpeg');assert.equal((await request(`admin/gallery/${shared.id}`,'PUT',{revision:0,mediaId:shared.mediaId,caption:'One more song.',alt:shared.alt})).status,200);
     const ticket=await request('admin/uploads','POST',{kind:'gallery',name:'new-photo.jpg',contentType:'image/jpeg',size:2048});assert.equal(ticket.status,200);assert.match(ticket.data.pathname,/^trn\/gallery\//);
     const media=(await request('admin/media','POST',{pathname:ticket.data.pathname})).data;
-    const payload={revision:0,mediaId:media.id,caption:''};
+    const payload={revision:0,mediaId:media.id};
     assert.equal((await request('admin/gallery','POST',{...payload,alt:'x'.repeat(501)})).status,400);
     assert.equal((await request('admin/gallery','POST',payload,{Origin:'https://other.example'})).status,403);
-    const added=await request('admin/gallery','POST',payload);assert.equal(added.status,201);assert.equal(added.data.alt,'TRN Events Nepal gallery photo');assert.equal((await request('gallery')).data.at(-1).id,added.data.id);
+    const added=await request('admin/gallery','POST',payload);assert.equal(added.status,201);assert.equal(added.data.caption,'');assert.equal(added.data.alt,'TRN Events Nepal gallery photo');assert.equal((await request('gallery')).data.at(-1).id,added.data.id);
     assert.equal((await request('admin/gallery','POST',payload)).status,409);
     const edited=await request(`admin/gallery/${added.data.id}`,'PUT',{...payload,caption:'A night to remember.'});assert.equal(edited.status,200);assert.equal(edited.data.revision,1);
     assert.equal((await request(`admin/gallery/${added.data.id}`,'PUT',payload)).status,409);
