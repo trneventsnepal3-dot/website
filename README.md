@@ -53,7 +53,7 @@ Files upload directly from the browser to Neon using a short-lived signed URL is
 
 ## Site controls
 
-In **Site media → Gallery photos**, administrators can upload an image, add an optional caption and required description, then **Save photo** to publish it. Existing photos can be selected to edit their text or remove them from the gallery. Photos upload to the `media` bucket and save separately from the media switches. The public gallery scrolls horizontally in the original large/tall/stacked-photo pattern, with touch, trackpad, keyboard and arrow controls. Clicking any photo opens the full-size viewer. The nine original photos are seeded once; later migrations preserve edits and removals.
+In **Site media → Gallery photos**, administrators can upload an image, add an optional caption, then **Save photo** to publish it. Existing photos can be selected to edit their text or remove them from the gallery. Photos upload to the `media` bucket and save separately from the media switches. The public gallery scrolls horizontally in the original large/tall/stacked-photo pattern, with touch, trackpad, keyboard and arrow controls. Clicking any photo opens the full-size viewer. The nine original photos are seeded once; later migrations preserve edits and removals.
 
 The **Live events** tab lets administrators add, edit, hide and remove listings. Each event has a photo uploaded to the `media` bucket, an event name, a location, and a full date including the year. Events save separately from site-media settings. Visible listings appear in chronological order; an empty list hides the public events section. The initial Sushant KC Live listing is dated **28 March 2027**. The migration seeds it once and preserves subsequent edits or removal.
 

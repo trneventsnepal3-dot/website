@@ -105,7 +105,7 @@
 .admin-gallery-thumb[aria-pressed=true] img { outline: 2px solid #eee; outline-offset: -2px; }
 .admin-gallery-thumb span { display: block; color: #bbb; font-size: 13px; line-height: 1.4; margin-top: 8px; max-height: 2.8em; overflow: hidden; }
 .admin-gallery-editor { display: grid; grid-template-columns: 200px minmax(0,1fr); gap: 24px; }
-.admin-gallery-current img { height: 180px; width: 100%; object-fit: contain; background: #101010; }
+.admin-gallery-current img { height: 140px; width: 100%; object-fit: contain; background: #101010; }
 .admin-gallery-editor .admin-field:first-child { margin-top: 0; }
 .admin-gallery-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 18px; }
 @media(max-width:650px) { .admin-gallery-heading { align-items: start; } .admin-gallery-heading p { font-size: 13px; } .admin-gallery-editor { grid-template-columns: 1fr; gap: 18px; } .admin-gallery-current img { height: 180px; } .admin-gallery-heading .admin-upload { padding-inline: 8px; } .admin-gallery-actions { gap: 12px; } }
