@@ -108,6 +108,8 @@
 .admin-gallery-current img { height: 140px; width: 100%; object-fit: contain; background: #101010; }
 .admin-gallery-editor .admin-field:first-child { margin-top: 0; }
 .admin-gallery-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 18px; }
+.admin-remove-photo { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 14px; border: 1px solid #76504b; border-radius: 4px; background: #301c1c; color: #ffc4bd; font-size: 13px; font-weight: 500; }
+.admin-remove-photo:hover:not(:disabled) { background: #442622; border-color: #bd7068; }
 @media(max-width:650px) { .admin-gallery-heading { align-items: start; } .admin-gallery-heading p { font-size: 13px; } .admin-gallery-editor { grid-template-columns: 1fr; gap: 18px; } .admin-gallery-current img { height: 180px; } .admin-gallery-heading .admin-upload { padding-inline: 8px; } .admin-gallery-actions { gap: 12px; } }
 /* The event list and editor share the 1100px content edges. */
 .admin-event-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; align-items: start; }
