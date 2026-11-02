@@ -161,6 +161,13 @@
 .admin-field select:focus-visible,.admin-field textarea:focus-visible { outline: 2px solid #eee; outline-offset: 2px; }
 .admin-tour-dates { margin-top: 24px; }
 .admin-tour-dates h3 { font: inherit; font-weight: 550; }
-.admin-tour-stop { min-width: 0; margin: 18px 0; padding: 16px; border: 1px solid #363636; border-radius: 4px; }
-.admin-tour-stop legend { padding: 0 6px; font-size: 13px; color: #bbb; }
-.admin-tour-stop .admin-field:first-of-type { margin-top: 0; }
+.admin-event-format { margin: 0 0 24px; max-width: 320px; }
+.admin-tour-stop { min-width: 0; margin: 16px 0; padding: 0; border: 0; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 32px; align-items: end; gap: 10px; }
+.admin-tour-stop legend { padding: 0; margin-bottom: 8px; font-size: 13px; color: #bbb; }
+.admin-tour-stop .admin-field { margin-top: 0; min-width: 0; }
+.admin-tour-stop input { min-width: 0; }
+.admin-tour-remove { min-height: 44px; width: 32px; display: grid; place-items: center; padding: 0; }
+.admin-tour-remove:disabled { opacity: .3; }
+.admin-tour-add { margin-top: 2px; }
+@media (min-width:651px) and (max-width:1000px) { .admin-event-fields { grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); } }
+@media (max-width:650px) { .admin-tour-stop { gap: 8px; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 28px; } .admin-tour-remove { width: 28px; } .admin-tour-stop input { padding-inline: 6px !important; font-size: 13px !important; } }
