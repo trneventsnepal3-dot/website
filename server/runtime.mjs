@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { digest, verifyPassword } from './password.mjs';
 import { createEvents } from './events.mjs';
 import { createGallery } from './gallery.mjs';
+import { createAlbums } from './albums.mjs';
 
 const settingSchema = z.object({ revision: z.number().int().nonnegative(), effectsEnabled: z.boolean(), popupEnabled: z.boolean(), audioEnabled: z.boolean(), heroVideoEnabled: z.boolean(), popupId: z.uuid().nullable(), audioId: z.uuid().nullable(), heroId: z.uuid().nullable(), popupAlt: z.string().trim().max(240), popupLink: z.union([z.literal(''), z.url().refine(v => v.startsWith('https://'), 'Use an https:// link')]), audioVolume: z.number().min(0).max(1) }).strict();
 const uploadSchema = z.object({ kind: z.enum(['popup', 'audio', 'hero', 'event', 'gallery']), name: z.string().trim().min(1).max(200), contentType: z.string(), size: z.number().int().positive() }).strict();
@@ -26,6 +27,7 @@ export function createHandler({ env = process.env, query, storage = createStorag
   const credential = () => digest(env.ADMIN_PASSWORD_HASH || '');
   const events = createEvents(db);
   const gallery = createGallery(db);
+  const albums = createAlbums(db, gallery);
   const configured = () => { if (!env.ADMIN_PASSWORD_HASH) fail(503, 'Set ADMIN_PASSWORD_HASH using npm run admin:password.'); };
   const tokenOf = req => /(?:^|;\s*)trn_admin=([A-Za-z0-9_-]+)/.exec(req.headers.cookie || '')?.[1];
   async function authenticate(req) {
@@ -57,6 +59,7 @@ export function createHandler({ env = process.env, query, storage = createStorag
       if (path === '/api/site-settings' && method === 'GET') return send(200, await settings());
       if (path === '/api/events' && method === 'GET') return send(200, await events.list());
       if (path === '/api/gallery' && method === 'GET') return send(200, await gallery.list());
+      if (path === '/api/albums' && method === 'GET') return send(200, await albums.list());
       if (!path.startsWith('/api/admin/')) fail(404, 'Not found.');
       if (path === '/api/admin/login' && method === 'POST') {
         csrf(req); configured();
@@ -86,6 +89,14 @@ export function createHandler({ env = process.env, query, storage = createStorag
       }
       const owner = await authenticate(req);
       if (method !== 'GET') csrf(req);
+      if (path === '/api/admin/albums' && method === 'GET') return send(200, await albums.list(true));
+      if (path === '/api/admin/albums' && method === 'POST') return send(201, await albums.save(await readBody(req)));
+      const albumPath = /^\/api\/admin\/albums\/([a-f0-9-]+)$/.exec(path);
+      if (albumPath) {
+        if (!z.uuid().safeParse(albumPath[1]).success) fail(400, 'Invalid album.');
+        if (method === 'PUT') return send(200, await albums.save(await readBody(req),albumPath[1]));
+        if (method === 'DELETE') return send(200, await albums.remove(albumPath[1],await readBody(req)));
+      }
       if (path === '/api/admin/gallery' && method === 'GET') return send(200, await gallery.list());
       if (path === '/api/admin/gallery' && method === 'POST') return send(201, await gallery.save(await readBody(req)));
       const galleryPath = /^\/api\/admin\/gallery\/([a-f0-9-]+)$/.exec(path);

@@ -69,3 +69,18 @@ INSERT INTO trn_gallery(media_id,caption,alt)
  WHERE NOT EXISTS(SELECT 1 FROM trn_migrations WHERE name='seed-gallery-photos')
  ORDER BY originals.position ON CONFLICT DO NOTHING;
 INSERT INTO trn_migrations(name) VALUES('seed-gallery-photos') ON CONFLICT DO NOTHING;
+CREATE TABLE IF NOT EXISTS trn_albums (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), revision integer NOT NULL DEFAULT 0,
+ name text NOT NULL, cover_id uuid NOT NULL REFERENCES trn_media(id),
+ position bigint GENERATED ALWAYS AS IDENTITY
+);
+ALTER TABLE trn_gallery ADD COLUMN IF NOT EXISTS album_id uuid REFERENCES trn_albums(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS trn_gallery_album_idx ON trn_gallery(album_id);
+INSERT INTO trn_albums(id,name,cover_id)
+ SELECT '00000000-0000-4000-8000-000000000003','Live archive',media_id
+ FROM trn_gallery WHERE NOT EXISTS(SELECT 1 FROM trn_migrations WHERE name='gallery-albums')
+ ORDER BY position,id LIMIT 1 ON CONFLICT DO NOTHING;
+UPDATE trn_gallery SET album_id='00000000-0000-4000-8000-000000000003'
+ WHERE album_id IS NULL AND NOT EXISTS(SELECT 1 FROM trn_migrations WHERE name='gallery-albums')
+ AND EXISTS(SELECT 1 FROM trn_albums WHERE id='00000000-0000-4000-8000-000000000003');
+INSERT INTO trn_migrations(name) VALUES('gallery-albums') ON CONFLICT DO NOTHING;

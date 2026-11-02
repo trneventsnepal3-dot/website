@@ -1,10 +1,30 @@
-.gallery-scroll { --gallery-wide: min(46vw, 660px); --gallery-narrow: min(25vw, 360px); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; margin-inline: calc(-1 * var(--gutter)); padding: 0 var(--gutter) 14px; scroll-padding-inline: var(--gutter); scrollbar-width: thin; scrollbar-color: #858585 var(--surface); }
-.gallery-scroll:focus-visible { outline: 2px solid var(--paper); outline-offset: -3px; }
-.gallery-mosaic { display: grid; grid-template-rows: repeat(2, minmax(0,1fr)); gap: 12px; height: min(39vw,570px); width: max-content; padding-right: var(--gutter); }
-.gallery-tile { min-width: 0; min-height: 0; }
-.gallery-tile img { pointer-events: none; }
-.gallery-scroll-controls { display: flex; gap: 8px; flex-shrink: 0; }
-.gallery-scroll-controls .icon-button { width: 44px; height: 44px; background: var(--surface); color: var(--paper); }
-.gallery-scroll-controls button:disabled { opacity: .3; cursor: default; }
-@media(max-width:1000px) { .gallery-scroll { --gallery-wide: 54vw; --gallery-narrow: 30vw; } .gallery-mosaic { height: 50vw; } }
-@media(max-width:600px) { .gallery-scroll { --gallery-wide: 78vw; --gallery-narrow: 48vw; } .gallery-mosaic { height: 340px; gap: 8px; } .gallery .gallery-bottom { display: flex; gap: 16px; } .gallery-bottom p { max-width: 23ch; } }
+﻿.album-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 24px; }
+.album-card { position: relative; display: block; padding: 0; min-width: 0; width: 100%; height: clamp(320px,38vw,540px); overflow: hidden; background: var(--surface); color: var(--white); }
+.album-card > img { width: 100%; height: 100%; object-fit: cover; transition: transform 600ms var(--ease); }
+.album-card-shade { position: absolute; inset: 0; background: rgb(0 0 0 / 32%); }
+.album-card-name { position: absolute; top: 66%; left: 24px; right: 24px; transform: translateY(-50%); font-family: var(--display); font-size: var(--size-heading); line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.album-card-name > span { display: block; margin-top: 12px; font: 16px/1.4 var(--text); }
+.album-card-open { position: absolute; right: 20px; bottom: 20px; display: grid; place-items: center; width: 44px; height: 44px; background: var(--paper); color: var(--ink); }
+.album-card:hover > img { transform: scale(1.035); }
+.album-card:focus-visible { outline-offset: 5px; }
+.album-dialog { width: min(1100px,calc(100vw - 48px)); max-height: 92dvh; padding: 0; margin: auto; overflow: auto; overscroll-behavior: contain; background: var(--ink); color: var(--paper); }
+.album-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 24px; }
+.album-dialog-heading h2 { font-size: clamp(28px,3vw,42px); overflow-wrap: anywhere; }
+.album-dialog-heading .icon-button { flex-shrink: 0; }
+.album-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.album-carousel::-webkit-scrollbar { display: none; }
+.album-slide { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; scroll-snap-stop: always; }
+.album-slide > button { position: relative; display: block; width: 100%; padding: 0; }
+.album-slide img { width: 100%; height: min(58dvh,600px); object-fit: contain; background: #101010; }
+.album-slide > button:focus-visible { outline-offset: -4px; }
+.album-expand { position: absolute; right: 16px; bottom: 16px; background: var(--paper); color: var(--ink); display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; }
+.album-carousel-bottom { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 24px; }
+.album-carousel-bottom p { font-size: 14px; }
+.album-carousel-bottom p + p { margin-top: 6px; color: #bbb; }
+.album-carousel-bottom button:disabled { opacity: .3; }
+.album-fullscreen { position: fixed; inset: 0; width: 100vw; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; background: #101010; color: var(--paper); overflow: hidden; }
+.album-fullscreen-image { width: 100%; height: calc(100dvh - 88px); object-fit: contain; }
+.album-fullscreen-bottom { height: 88px; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.album-fullscreen-bottom p { font-size: 14px; overflow-wrap: anywhere; }
+@media(max-width:600px) { .album-cards { gap: 20px; } .album-card { height: 380px; } .album-dialog { width: calc(100vw - 24px); } .album-dialog-heading,.album-carousel-bottom { padding: 16px; gap: 12px; } .album-slide img { height: 48dvh; } .album-carousel-bottom p + p { max-width: 20ch; } .album-expand { right: 10px; bottom: 10px; padding: 10px; } .album-fullscreen-bottom { padding-inline: 16px; gap: 12px; } }
+@media (prefers-reduced-motion:reduce) { .album-card > img { transition: none; } .album-card:hover > img { transform: none; } }
