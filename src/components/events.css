@@ -32,11 +32,11 @@
 .event-row:hover .event-info h3 { color: var(--accent); }
 .event-date { max-width: 38ch; }
 .event-date span { display: flex; align-items: center; gap: 10px; }
-.event-dialog { position: fixed; width: min(1080px, calc(100vw - 48px)); max-height: 90dvh; margin: auto; padding: 0; background: var(--paper); color: var(--ink); overflow: auto; overscroll-behavior: contain; }
-.event-dialog-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.event-dialog { position: fixed; width: min(760px, calc(100vw - 48px)); max-height: 90dvh; margin: auto; padding: 0; background: var(--paper); color: var(--ink); overflow: auto; overscroll-behavior: contain; }
+.event-dialog-layout { display: flex; flex-direction: column; }
 .event-dialog-artwork { background: var(--ink); display: flex; align-items: center; }
-.event-dialog-artwork img { width: 100%; max-height: 80dvh; object-fit: contain; }
-.event-dialog-details { padding: 72px 32px 36px; overflow-wrap: anywhere; }
+.event-dialog-artwork img { width: 100%; max-height: 52dvh; object-fit: contain; }
+.event-dialog-details { padding: 32px; overflow-wrap: anywhere; }
 .event-dialog-details h2 { margin-bottom: 20px; }
 .event-dialog-details > p + p { margin-top: 10px; }
 .event-dialog-details .event-artist { font-size: var(--size-lead); margin-bottom: 16px; }
@@ -49,7 +49,6 @@
 .event-schedule li p { margin-top: 4px; }
 @media (max-width: 700px) {
   .event-dialog { width: calc(100vw - 24px); max-height: 92dvh; }
-  .event-dialog-layout { grid-template-columns: 1fr; }
   .event-dialog-artwork img { max-height: 48dvh; }
   .event-dialog-details { padding: 28px 20px; }
 }
