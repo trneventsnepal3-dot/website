@@ -28,6 +28,10 @@ CREATE TABLE IF NOT EXISTS trn_events (
  image_id uuid NOT NULL REFERENCES trn_media(id), published boolean NOT NULL DEFAULT true
 );
 CREATE TABLE IF NOT EXISTS trn_migrations (name text PRIMARY KEY);
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS event_type text NOT NULL DEFAULT 'concert' CHECK (event_type IN ('concert','tour'));
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS artist text NOT NULL DEFAULT '';
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS description text NOT NULL DEFAULT '';
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS stops jsonb NOT NULL DEFAULT '[]';
 INSERT INTO trn_media(id,kind,pathname,owner,name,url,content_type,size,storage_bucket)
  SELECT '00000000-0000-4000-8000-000000000002','event','trn/original/IMG_0674.JPG.jpeg','event-seed','IMG_0674.JPG.jpeg',
  COALESCE(NULLIF(gallery_base_url,''),'/media') || '/IMG_0674.JPG.jpeg','image/jpeg',164477,'media'
