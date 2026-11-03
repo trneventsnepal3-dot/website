@@ -9,8 +9,6 @@ const schema = z.object({ revision: z.number().int().nonnegative(), name: z.stri
     if (!event.artist) issue('Enter the artist for this tour.');
     if (event.stops.length < 2) issue('Add at least two tour dates and locations.');
     if (event.stops.some(stop => !stop.dateTba && !event.dateTba && !stop.date)) issue('Enter a date for every show, or mark that show as to be announced.');
-    const keys = event.stops.map(s => `${s.dateTba || event.dateTba ? '' : s.date}|${s.location.toLowerCase()}`);
-    if (new Set(keys).size !== keys.length) issue('Remove duplicate tour dates at the same location.');
   } else if (!event.location) issue('Enter the concert location.');
   else if (!event.dateTba && !event.date) issue('Enter the concert date, or mark it as to be announced.');
 });

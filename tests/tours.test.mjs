@@ -22,7 +22,7 @@ test('tours persist shared details and ordered stops, validate schedules, and co
     assert.deepEqual(tour.stops, [...payload.stops].reverse().map(stop => ({ ...stop, dateTba: false })));
     await database.exec(schema);
     assert.deepEqual((await events.list()).find(e => e.id === tour.id), tour);
-    for (const invalid of [ { stops: payload.stops.slice(0,1) }, { artist: '' }, { stops: [payload.stops[0], payload.stops[0]] }, { stops: [{ date: '2028-02-30', location: 'London' }, payload.stops[0]] }, { stops: [{ date: '2028-03-30', location: '' }, payload.stops[0]] } ]) {
+    for (const invalid of [ { stops: payload.stops.slice(0,1) }, { artist: '' }, { stops: [{ date: '2028-02-30', location: 'London' }, payload.stops[0]] }, { stops: [{ date: '2028-03-30', location: '' }, payload.stops[0]] } ]) {
       await assert.rejects(events.save({ ...payload, ...invalid }), { status: 400 });
     }
     const hidden = await events.save({ ...payload, stops: [...payload.stops, { date: '2028-04-20', location: 'Birmingham' }], published: false }, tour.id);
@@ -37,10 +37,13 @@ test('tours persist shared details and ordered stops, validate schedules, and co
     assert.equal(tba.dateTba, true);
     assert.deepEqual(tba.stops, [{ date: '', dateTba: true, location: 'Kathmandu' }]);
     assert.equal((await events.list()).at(-1).id, tba.id);
-    const tbaTour = await events.save({ ...payload, dateTba: true, stops: [{ location: 'London' }, { location: 'Manchester' }] });
+    const tbaTour = await events.save({ ...payload, dateTba: true, stops: [{ location: 'Texas, USA' }, { location: 'Texas, USA' }] });
     assert.equal(tbaTour.date, '');
     assert.equal(tbaTour.dateTba, true);
-    assert.deepEqual(tbaTour.stops, [{ date: '', dateTba: true, location: 'London' }, { date: '', dateTba: true, location: 'Manchester' }]);
+    assert.deepEqual(tbaTour.stops, [{ date: '', dateTba: true, location: 'Texas, USA' }, { date: '', dateTba: true, location: 'Texas, USA' }]);
+    const sameVenue = await events.save({ ...payload, name: 'Texas Tour', stops: [{ date: '2028-06-01', location: 'Texas, USA' }, { date: '2028-06-02', location: 'Texas, USA' }] });
+    assert.equal(sameVenue.date, '2028-06-01');
+    assert.deepEqual(sameVenue.stops, [{ date: '2028-06-01', dateTba: false, location: 'Texas, USA' }, { date: '2028-06-02', dateTba: false, location: 'Texas, USA' }]);
     const mixedTour = await events.save({ ...payload, stops: [{ date: '2028-04-12', location: 'London' }, { location: 'Manchester', dateTba: true }] });
     assert.equal(mixedTour.date, '2028-04-12');
     assert.equal(mixedTour.dateTba, false);
