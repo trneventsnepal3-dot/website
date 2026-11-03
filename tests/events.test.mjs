@@ -45,5 +45,10 @@ test('events: photo upload, full dates, auth, publication, editing, conflicts an
     assert.equal((await request('events')).data.some(e=>e.id===seed.id),false,'Rerunning migrations must not restore a deleted event');
     assert.equal((await request(`admin/events/${created.data.id}`,'DELETE',{revision:0})).status,200);
     assert.deepEqual((await request('events')).data,[]);
+    const tba = await request('admin/events','POST',{...payload,name:'Date to be announced',dateTba:true,published:true});
+    assert.equal(tba.status,201); assert.equal(tba.data.date,''); assert.equal(tba.data.dateTba,true);
+    assert.deepEqual((await request('events')).data.map(e=>e.name),['Date to be announced']);
+    assert.equal((await request(`admin/events/${tba.data.id}`,'DELETE',{revision:0})).status,200);
+    assert.deepEqual((await request('events')).data,[]);
   } finally { await new Promise(resolve => server.close(resolve)); await database.close(); }
 });

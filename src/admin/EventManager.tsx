@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Image, Plus, UploadSimple, X } from '@phosphor-icons/react'
 import { api } from '../settings'
-import { eventDateLabel, eventLocationLabel, type LiveEvent } from '../events'
+import { eventDateLabel, eventLocationLabel, TBA_LABEL, type LiveEvent } from '../events'
 import { uploadMedia } from '../upload'
 
 type Draft = Omit<LiveEvent, 'id'> & { id: string | null }
-const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [] })
+const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [] })
 export default function EventManager({ uploadsAvailable }: { uploadsAvailable: boolean }) {
   const [events, setEvents] = useState<LiveEvent[]>([])
   const [draft, setDraft] = useState<Draft>(empty)
@@ -34,9 +34,26 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
   }, [dirty])
   const select = (value: Draft) => { if (!dirty || window.confirm('Discard unsaved event changes?')) { choose(value); nameInput.current?.focus() } }
   const change = <K extends keyof Draft>(key: K, value: Draft[K]) => { setDraft(current => ({ ...current, [key]: value })); setNotice('') }
+  const setTba = (value: boolean) => {
+    setDraft(current => current.type === 'tour'
+      ? { ...current, dateTba: value, stops: current.stops.map(stop => ({ ...stop, dateTba: value })) }
+      : { ...current, dateTba: value })
+    setNotice('')
+  }
+  const setStopTba = (index: number, value: boolean) => {
+    setDraft(current => {
+      const stops = current.stops.map((stop, i) => i === index ? { ...stop, dateTba: value } : stop)
+      return { ...current, stops, dateTba: stops.every(stop => stop.dateTba) }
+    })
+    setNotice('')
+  }
   const changeStop = (index: number, key: 'date' | 'location', value: string) => change('stops', draft.stops.map((stop, i) => i === index ? { ...stop, [key]: value } : stop))
   const changeType = (type: Draft['type']) => {
-    setDraft(current => ({ ...current, type, stops: type === 'tour' && current.stops.length === 0 ? [{ date: current.date, location: current.location }] : current.stops, date: type === 'concert' ? current.stops[0]?.date || current.date : current.date, location: type === 'concert' ? current.stops[0]?.location || current.location : current.location }))
+    setDraft(current => {
+      const stops = type === 'tour' && current.stops.length === 0 ? [{ date: current.date, dateTba: current.dateTba, location: current.location }] : current.stops
+      const first = stops[0]
+      return { ...current, type, stops, date: type === 'concert' ? first?.date || current.date : current.date, location: type === 'concert' ? first?.location || current.location : current.location, dateTba: type === 'tour' ? stops.every(stop => stop.dateTba) : first ? first.dateTba : current.dateTba }
+    })
     setNotice('')
   }
   async function image(file?: File) {
@@ -53,9 +70,10 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
     setWorking(true)
     try {
       const { id, imageUrl, ...fields } = draft; void imageUrl
-      const payload = draft.type === 'tour' ? { ...fields, date: undefined, location: undefined } : fields
+      const stops = draft.type === 'tour' ? fields.stops.map(stop => ({ ...stop, date: stop.dateTba ? undefined : stop.date })) : fields.stops
+      const payload = { ...fields, date: draft.type === 'tour' || draft.dateTba ? undefined : fields.date, location: draft.type === 'tour' ? undefined : fields.location, stops }
       const value = await api<LiveEvent>(`admin/events${id ? `/${id}` : ''}`, id ? 'PUT' : 'POST', payload)
-      setEvents(current => [...current.filter(event => event.id !== value.id), value].sort((a,b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)))
+      setEvents(current => [...current.filter(event => event.id !== value.id), value].sort((a,b) => Number(a.dateTba) - Number(b.dateTba) || a.date.localeCompare(b.date) || a.name.localeCompare(b.name)))
       choose(value); setNotice(value.published ? 'Event is live on the website.' : 'Event saved and hidden from the website.')
     } catch(e) { setError((e as Error).message) } finally { setWorking(false) }
   }
@@ -75,10 +93,10 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
       <section className="admin-panel admin-event-list"><div className="admin-event-list-heading"><h2>Events on the website</h2><button className="admin-upload" disabled={busy} onClick={() => select(empty())}><Plus size={16} />Add event</button></div>
         {!events.length && <p className="admin-description">No events yet. Add a photo and the details to publish your first event.</p>}
         {events.map(event => <div className="admin-event-item" key={event.id}>
-          <button className="admin-event-select" aria-pressed={draft.id === event.id} disabled={busy} onClick={() => select(event)}><img src={event.imageUrl} alt="" /><span><strong>{event.name}</strong><span>{eventLocationLabel(event)}</span><time dateTime={event.date}>{eventDateLabel(event)}</time><span className="admin-event-visibility">{event.published ? 'Visible on website' : 'Hidden'}</span></span></button>
+          <button className="admin-event-select" aria-pressed={draft.id === event.id} disabled={busy} onClick={() => select(event)}><img src={event.imageUrl} alt="" /><span><strong>{event.name}</strong><span>{eventLocationLabel(event)}</span><time dateTime={event.date || undefined}>{eventDateLabel(event)}</time><span className="admin-event-visibility">{event.published ? 'Visible on website' : 'Hidden'}</span></span></button>
           {removing === event.id ? <div className="admin-event-confirm"><p>Remove this event from the website?</p><button disabled={busy} onClick={() => void remove(event)}>Remove event</button><button disabled={busy} onClick={() => setRemoving(null)}>Keep event</button></div> : <button className="admin-remove" disabled={busy} onClick={() => setRemoving(event.id)} aria-label={`Remove ${event.name}`}>Remove</button>}
         </div>)}
-        <p className="admin-file-help">Visible events appear in date order. Dates always include the year.</p>
+        <p className="admin-file-help">Visible events appear in date order. Dates always include the year. Events whose date is to be announced appear last.</p>
       </section>
       <form className="admin-panel admin-event-form" onSubmit={event => { event.preventDefault(); void save() }}><fieldset className="admin-edit-fields" disabled={busy}><div className="admin-event-editor-heading"><h2>{draft.id ? 'Edit event' : 'Add event'}</h2><span>{dirty ? 'Unsaved changes' : draft.id ? 'Saved' : 'New event'}</span></div>
         <label className="admin-field admin-event-format">Event format<select value={draft.type} onChange={event => changeType(event.target.value as Draft['type'])}><option value="concert">Single</option><option value="tour">Tour</option></select></label>
@@ -90,16 +108,21 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
         <label className="admin-field">Details<textarea value={draft.description} maxLength={5000} rows={4} onChange={event => change('description', event.target.value)} placeholder="About the event, doors, age restrictions and other details" /></label>
         {draft.type === 'concert' ? <>
           <label className="admin-field">Location<input value={draft.location} required maxLength={160} onChange={event => change('location',event.target.value)} placeholder="City, venue or country" /></label>
-          <label className="admin-field">Event date<input type="date" value={draft.date} required min="1900-01-01" max="2200-12-31" onChange={event => change('date',event.target.value)} /></label>
-        </> : <section className="admin-tour-dates" aria-labelledby="admin-tour-title"><h3 id="admin-tour-title">Tour dates and locations</h3><p className="admin-file-help">Add at least two shows. Dates are saved in chronological order.</p>
+          {draft.dateTba ? <div className="admin-field">Event date<span className="admin-date-announced">{TBA_LABEL}</span></div> : <label className="admin-field">Event date<input type="date" value={draft.date} required min="1900-01-01" max="2200-12-31" onChange={event => change('date',event.target.value)} /></label>}
+        </> : <section className="admin-tour-dates" aria-labelledby="admin-tour-title"><h3 id="admin-tour-title">Tour dates and locations</h3><p className="admin-file-help">Add at least two shows. Dated shows are saved in chronological order; shows marked as to be announced appear last.</p>
           {draft.stops.map((stop,index) => <fieldset className="admin-tour-stop" key={index}><legend>Show {index + 1}</legend>
             <label className="admin-field">Location<input aria-label={`Show ${index + 1} location`} required maxLength={160} value={stop.location} placeholder="City and venue" onChange={event => changeStop(index, 'location', event.target.value)} /></label>
-            <label className="admin-field">Date<input aria-label={`Show ${index + 1} date`} type="date" required min="1900-01-01" max="2200-12-31" value={stop.date} onChange={event => changeStop(index, 'date', event.target.value)} /></label>
+            <div className="admin-field">Date{stop.dateTba ? <span className="admin-date-announced">{TBA_LABEL}</span> : <input aria-label={`Show ${index + 1} date`} type="date" required min="1900-01-01" max="2200-12-31" value={stop.date} onChange={event => changeStop(index, 'date', event.target.value)} />}
+              <label className="admin-stop-tba"><input type="checkbox" checked={stop.dateTba} onChange={event => setStopTba(index, event.target.checked)} />Date to be announced</label>
+            </div>
             <button type="button" className="admin-tour-remove" disabled={draft.stops.length <= 1} onClick={() => change('stops', draft.stops.filter((_,i) => i !== index))} aria-label={`Remove show ${index + 1}`}><X size={18} /></button>
           </fieldset>)}
-          <button type="button" className="admin-upload admin-tour-add" disabled={draft.stops.length >= 100} onClick={() => change('stops', [...draft.stops, { date: '', location: '' }])}><Plus size={20} aria-hidden="true" />Add show</button>
+          <button type="button" className="admin-upload admin-tour-add" disabled={draft.stops.length >= 100} onClick={() => change('stops', [...draft.stops, { date: '', dateTba: draft.dateTba, location: '' }])}><Plus size={20} aria-hidden="true" />Add show</button>
         </section>}
-        <label className="admin-event-publish"><input type="checkbox" checked={draft.published} onChange={event => change('published',event.target.checked)} />Visible on website</label>
+        <div className="admin-event-toggles">
+          <label className="admin-event-publish"><input type="checkbox" checked={draft.published} onChange={event => change('published',event.target.checked)} />Visible on website</label>
+          <label className="admin-event-publish"><input type="checkbox" checked={draft.type === 'tour' ? draft.stops.length > 0 && draft.stops.every(stop => stop.dateTba) : draft.dateTba} onChange={event => setTba(event.target.checked)} />{draft.type === 'tour' ? 'All dates to be announced' : 'Date to be announced'}</label>
+        </div>
         <div className="admin-event-actions"><button type="submit" className="admin-primary" disabled={!dirty || busy}>{working ? 'Saving…' : 'Save event'}</button>{dirty && <button type="button" className="admin-discard" disabled={busy} onClick={() => { setDraft(JSON.parse(saved) as Draft); setError(''); setNotice('') }}>Discard changes</button>}</div>
       </div></div></fieldset></form>
     </div>}

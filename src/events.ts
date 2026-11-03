@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from './settings'
-export type EventStop = { date: string; location: string }
-export type LiveEvent = { id: string; revision: number; name: string; location: string; date: string; imageId: string; imageUrl: string; published: boolean; type: 'concert' | 'tour'; artist: string; description: string; stops: EventStop[] }
-export const formatEventDate = (value: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
-export const eventDateLabel = (event: LiveEvent) => event.type === 'tour' ? `${formatEventDate(event.stops[0].date)} – ${formatEventDate(event.stops[event.stops.length - 1].date)}` : formatEventDate(event.date)
+export type EventStop = { date: string; dateTba: boolean; location: string }
+export type LiveEvent = { id: string; revision: number; name: string; location: string; date: string; dateTba: boolean; imageId: string; imageUrl: string; published: boolean; type: 'concert' | 'tour'; artist: string; description: string; stops: EventStop[] }
+export const TBA_LABEL = 'To be Announced'
+export const formatEventDate = (value: string) => value ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)) : TBA_LABEL
+export const eventDateLabel = (event: LiveEvent) => {
+  if (event.type === 'concert') return event.dateTba ? TBA_LABEL : formatEventDate(event.date)
+  const dated = event.stops.filter(stop => !stop.dateTba && stop.date)
+  return dated.length ? dated.length === 1 ? formatEventDate(dated[0].date) : `${formatEventDate(dated[0].date)} – ${formatEventDate(dated[dated.length - 1].date)}` : TBA_LABEL
+}
 export const eventLocationLabel = (event: LiveEvent) => event.type === 'tour' ? `${event.stops.length} shows · ${[...new Set(event.stops.map(stop => stop.location))].join(' / ')}` : event.location
 export function useEvents() {
   const [events, setEvents] = useState<LiveEvent[] | null>(null)

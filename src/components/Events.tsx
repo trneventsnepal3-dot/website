@@ -42,7 +42,7 @@ export default function UpcomingEvents() {
           <div className="event-dialog-details"><h2 id="event-dialog-title">{active.name}</h2>{active.artist && <p className="event-artist">{active.artist}</p>}
             <p>{eventDateLabel(active)}</p>{active.type === 'concert' && <p>{eventLocationLabel(active)}</p>}
             {active.description && <p className="event-description">{active.description}</p>}
-            {active.type === 'tour' && <section className="event-schedule" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => <li key={`${stop.date}-${index}`}><time dateTime={stop.date}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol></section>}
+            {active.type === 'tour' && <section className="event-schedule" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => <li key={`${stop.date}-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol></section>}
           </div></div></>}
     </dialog>
   </>
