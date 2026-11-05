@@ -59,7 +59,7 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
   async function image(file?: File) {
     if (!file) return
     setError(''); setNotice('')
-    if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type) || file.size > 10 * 1024 * 1024) { setError('Choose a JPG, PNG, WebP or GIF under 10 MB.'); return }
+    if (!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) { setError('Choose a JPG, PNG, WebP or GIF.'); return }
     setUploading(true); setProgress(0)
     try { const media = await uploadMedia('event', file, setProgress); setDraft(current => ({ ...current, imageId: media.id, imageUrl: media.url })); setNotice('Photo uploaded. Save the event to publish it.') }
     catch(e) { setError((e as Error).message) } finally { setUploading(false) }

@@ -23,6 +23,8 @@ function App() {
   const root = useRef<HTMLDivElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   const [videoPlaying, setVideoPlaying] = useState(false)
+  const videoPaused = useRef(false)
+  const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
   useEffect(() => {
     const media = gsap.matchMedia()
@@ -44,10 +46,39 @@ function App() {
     const player = video.current
     if (!player) return
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const updateMotion = () => { if (motion.matches || !filmEnabled) player.pause(); else void player.play().catch(() => setVideoPlaying(false)) }
+    player.defaultMuted = true
+    player.muted = true
+    player.playsInline = true
+    const start = () => {
+      if (!motion.matches && filmEnabled && !videoPaused.current && player.paused) {
+        void player.play().catch(() => setVideoPlaying(false))
+      }
+    }
+    const updateMotion = () => {
+      setReducedMotion(motion.matches)
+      if (motion.matches || !filmEnabled) player.pause()
+      else start()
+    }
+    const interact = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest('.video-control')) return
+      start()
+    }
+    const resume = () => { if (!document.hidden) start() }
     updateMotion()
+    player.addEventListener('canplay', start)
+    document.addEventListener('click', interact)
+    document.addEventListener('touchend', interact, { passive: true })
+    document.addEventListener('keydown', interact)
+    document.addEventListener('visibilitychange', resume)
     motion.addEventListener('change', updateMotion)
-    return () => motion.removeEventListener('change', updateMotion)
+    return () => {
+      player.removeEventListener('canplay', start)
+      document.removeEventListener('click', interact)
+      document.removeEventListener('touchend', interact)
+      document.removeEventListener('keydown', interact)
+      document.removeEventListener('visibilitychange', resume)
+      motion.removeEventListener('change', updateMotion)
+    }
   }, [filmEnabled, filmSource])
 
 
@@ -59,12 +90,13 @@ function App() {
       </header>
       <main id="main">
         <section className="hero" id="home" aria-labelledby="hero-title">
-          <div className="hero-media">{filmEnabled ? <video ref={video} src={filmSource} poster={photoSource('hero-poster.jpg')} muted loop playsInline preload="metadata" onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} aria-label="TRN concert footage" /> : <img src={photoSource('hero-poster.jpg')} alt="TRN concert crowd under stage lights" />}</div>
+          <div className="hero-media">{filmEnabled ? <video ref={video} src={filmSource} poster={photoSource('hero-poster.jpg')} autoPlay={!reducedMotion} muted loop playsInline preload="auto" onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} aria-label="TRN concert footage" /> : <img src={photoSource('hero-poster.jpg')} alt="TRN concert crowd under stage lights" />}</div>
           <div className="hero-shade" />
           <h1 className="hero-title" id="hero-title"><span>TRN EVENTS</span><span>NEPAL</span></h1>
           <div className="hero-copy"><p>Live music. Shared nights.<br />We bring the stage, the sound<br className="desktop-break" /> and the people together.</p><a className="button" href="#upcoming">Explore events <ArrowDown size={20} aria-hidden="true" /></a></div>
           {filmEnabled && <button className="video-control" onClick={() => {
             if (!video.current) return
+            videoPaused.current = !video.current.paused
             if (video.current.paused) void video.current.play().catch(() => setVideoPlaying(false))
             else video.current.pause()
           }} aria-label={videoPlaying ? 'Pause background video' : 'Play background video'} aria-pressed={videoPlaying}>

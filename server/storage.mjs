@@ -8,7 +8,7 @@ export const mediaTypes = {
   event: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   gallery: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
 };
-export const mediaLimits = { popup: 10 * 1024 * 1024, audio: 30 * 1024 * 1024, hero: 100 * 1024 * 1024, event: 10 * 1024 * 1024, gallery: 10 * 1024 * 1024 };
+export const mediaLimits = { popup: Infinity, audio: 30 * 1024 * 1024, hero: 100 * 1024 * 1024, event: Infinity, gallery: Infinity };
 const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'video/mp4': 'mp4', 'video/webm': 'webm' };
 export const mediaExtension = type => extensions[type];
 export function createStorage(env = process.env, { client: providedClient, sign = getSignedUrl } = {}) {

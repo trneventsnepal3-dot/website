@@ -7,7 +7,7 @@ import { createHandler } from '../server/runtime.mjs';
 import { hashPassword } from '../server/password.mjs';
 let database, server, origin, cookie, env, lastUpload;
 const objects = new Map();
-const buckets = { popup: 'media', audio: 'song', hero: 'herosectionvideo' };
+const buckets = { popup: 'media', event: 'media', gallery: 'media', audio: 'song', hero: 'herosectionvideo' };
 const password = 'Test-only-password-123!';
 async function request(path, method = 'GET', body, options = {}) {
   const response = await fetch(`${origin}/api/${path}`, { method, headers: { Origin: origin, 'X-TRN-Admin': '1', 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}), ...options.headers }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -37,6 +37,13 @@ test('protected admin, media publication, conflict handling and session revocati
   assert.equal((await request('admin/settings', 'PUT', draft, { headers: { 'X-TRN-Admin': '0' } })).status, 403);
   assert.equal((await request('admin/uploads', 'POST', { kind: 'popup', name: 'unsafe.svg', contentType: 'image/svg+xml', size: 2048 })).status, 400);
   assert.equal((await request('admin/uploads', 'POST', { kind: 'audio', name: 'large.mp3', contentType: 'audio/mpeg', size: 31 * 1024 * 1024 })).status, 400);
+  for (const kind of ['popup', 'event', 'gallery']) {
+    const size = 12 * 1024 * 1024;
+    const ticket = await request('admin/uploads', 'POST', { kind, name: 'large-image.png', contentType: 'image/png', size });
+    assert.equal(ticket.status, 200, `${kind} accepts images larger than 10 MB`);
+    objects.set(ticket.data.pathname, { contentType: 'image/png', size });
+    assert.equal((await request('admin/media', 'POST', { pathname: ticket.data.pathname })).status, 200);
+  }
   const authorized = await request('admin/uploads', 'POST', { kind: 'popup', name: 'event-poster.png', contentType: 'image/png', size: 2048 });
   assert.equal(authorized.status, 200); const { pathname } = authorized.data;
   assert.match(pathname, /^trn\/popup\/[a-f0-9-]+\.png$/); assert.equal(lastUpload.contentType, 'image/png'); assert.equal(lastUpload.size, 2048);

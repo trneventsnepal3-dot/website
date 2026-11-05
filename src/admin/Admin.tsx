@@ -39,7 +39,7 @@ export default function Admin() {
     if (!file || !settings) return
     setError(''); setNotice('')
     const accepted = { popup: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], audio: ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/mp4', 'audio/aac'], hero: ['video/mp4', 'video/webm'] }[kind]
-    if (!accepted.includes(file.type) || file.size > { popup: 10, audio: 30, hero: 100 }[kind] * 1024 * 1024) { setError({ popup: 'Choose a JPG, PNG, WebP or GIF under 10 MB.', audio: 'Choose an MP3, WAV, OGG, M4A or AAC under 30 MB.', hero: 'Choose an MP4 or WebM under 100 MB.' }[kind]); return }
+    if (!accepted.includes(file.type) || file.size > { popup: Infinity, audio: 30, hero: 100 }[kind] * 1024 * 1024) { setError({ popup: 'Choose a JPG, PNG, WebP or GIF.', audio: 'Choose an MP3, WAV, OGG, M4A or AAC under 30 MB.', hero: 'Choose an MP4 or WebM under 100 MB.' }[kind]); return }
     setUploading(kind); setProgress(0)
     try {
       const media = await uploadMedia(kind, file, setProgress)

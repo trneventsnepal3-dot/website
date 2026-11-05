@@ -34,7 +34,7 @@ export default function GalleryManager({ uploadsAvailable, disabled = false }: {
     window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
   function validate(file: File) {
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Choose JPG, PNG, WebP or GIF images under 10 MB each.')
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) throw new Error('Choose JPG, PNG, WebP or GIF images.')
   }
   async function cover(file?: File) {
     if (!file) return
@@ -120,6 +120,6 @@ export default function GalleryManager({ uploadsAvailable, disabled = false }: {
       </section>}
       {!draft.id && <p className="admin-file-help">Create the album with a name and cover, then add its photos.</p>}
     </>}
-    <p className="admin-file-help">JPG, PNG, WebP or GIF, up to 10 MB each. Albums save separately from the media switches.</p>
+    <p className="admin-file-help">JPG, PNG, WebP or GIF. Albums save separately from the media switches.</p>
   </section>
 }
