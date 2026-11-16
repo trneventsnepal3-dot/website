@@ -12,7 +12,7 @@
 
 .event-info { min-width: 0; overflow-wrap: anywhere; }
 .event-number { font-size: var(--size-small); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--soft-ink); }
-.event-info .event-number { display: block; margin-bottom: 8px; }
+.event-info .event-number, .past-event-info .event-number { display: block; margin-bottom: 8px; }
 .event-dialog-details .event-number { margin-bottom: 12px; }
 .event-info h3 { font-size: var(--size-heading); line-height: 1.05; }
 .event-info p { margin-top: 10px; font-size: 15px; color: var(--soft-ink); }
@@ -38,14 +38,18 @@
   .events { padding-block: 44px; }
   .events-heading { display: block; margin-bottom: 24px; }
   .events-heading > p { margin-top: 8px; }
-  .event-row { grid-template-columns: 84px minmax(0, 1fr); gap: 14px 16px; padding: 16px 4px; }
-  .event-thumb { width: 84px; height: 96px; grid-row: 1 / 3; }
-  .event-info { grid-column: 2; }
-  .event-info h3 { font-size: 26px; }
-  .event-info p { margin-top: 8px; font-size: 14px; }
-  .event-date { grid-column: 1 / 3; grid-row: 2; flex-direction: row; justify-content: space-between; align-items: center; gap: 16px; }
-  .event-date p { font-size: var(--size-body); }
-  .event-view { max-width: 20ch; margin: 0; }
+}
+@media (max-width: 768px) {
+  .event-row { grid-template-columns: minmax(92px, auto) 1fr auto; grid-template-areas: "num status status" "thumb title title" "thumb venue venue" "date date view"; row-gap: 10px; column-gap: 14px; padding: 16px 6px; }
+  .event-info, .event-date { display: contents; }
+  .event-row .event-number { grid-area: num; margin: 0; align-self: end; font-size: 12px; white-space: nowrap; }
+  .event-status { grid-area: status; justify-self: end; align-self: end; font-size: 10px; letter-spacing: .1em; gap: 6px; }
+  .event-status::before { width: 5px; height: 5px; }
+  .event-thumb { grid-area: thumb; width: 92px; height: 92px; border-radius: 8px; }
+  .event-info h3 { grid-area: title; font-size: 22px; }
+  .event-info p { grid-area: venue; margin-top: 0; font-size: 14px; }
+  .event-date p { grid-area: date; align-self: center; font-size: 15px; white-space: nowrap; }
+  .event-view { grid-area: view; justify-self: end; align-self: center; margin: 0; white-space: nowrap; }
 }
 /* ---------- Past events ---------- */
 .past-events { padding-block: 72px; border-top: 1px solid rgb(23 24 23 / 12%); }
@@ -121,20 +125,24 @@
   .past-events { padding-block: 44px; }
   .past-events .events-heading { display: block; margin-bottom: 24px; }
   .past-events .events-heading > p { margin-top: 8px; }
-  .past-event-row { grid-template-columns: 84px minmax(0, 1fr); gap: 14px 16px; padding: 16px 4px; }
-  .past-event-thumb { width: 84px; height: 96px; grid-row: 1 / 3; }
-  .past-event-info { grid-column: 2; }
-  .past-event-name { font-size: 26px; }
-  .past-event-venue { margin-top: 8px; font-size: 14px; }
-  .past-event-date { grid-column: 1 / 3; grid-row: 2; flex-direction: row; justify-content: space-between; align-items: center; gap: 16px; }
-  .past-event-date p { font-size: var(--size-body); }
-  .past-event-view { max-width: 20ch; margin: 0; }
   .past-event-dialog { width: calc(100vw - 20px); max-height: 92dvh; }
   .past-event-dialog .event-close { top: 10px; right: 10px; }
   .past-dialog-artwork img { max-height: 44dvh; }
   .past-dialog-body { padding: 22px 20px 28px; }
   .past-dialog-info { grid-template-columns: 1fr; gap: 16px; margin-top: 22px; padding-top: 20px; }
   .past-dialog-stops { margin-top: 22px; padding-top: 20px; }
+}
+@media (max-width: 768px) {
+  .past-event-row { grid-template-columns: minmax(92px, auto) 1fr auto; grid-template-areas: "num status status" "thumb title title" "thumb venue venue" "date date view"; row-gap: 10px; column-gap: 14px; padding: 16px 6px; }
+  .past-event-info, .past-event-date { display: contents; }
+  .past-event-row .event-number { grid-area: num; margin: 0; align-self: end; font-size: 12px; white-space: nowrap; }
+  .past-event-status { grid-area: status; justify-self: end; align-self: end; font-size: 10px; letter-spacing: .1em; gap: 6px; }
+  .past-event-status::before { width: 5px; height: 5px; }
+  .past-event-thumb { grid-area: thumb; width: 92px; height: 92px; border-radius: 8px; }
+  .past-event-name { grid-area: title; font-size: 22px; }
+  .past-event-venue { grid-area: venue; margin-top: 0; font-size: 14px; }
+  .past-event-date p { grid-area: date; align-self: center; font-size: 15px; white-space: nowrap; }
+  .past-event-view { grid-area: view; justify-self: end; align-self: center; margin: 0; white-space: nowrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {

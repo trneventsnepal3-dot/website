@@ -90,8 +90,7 @@ export function PastEvents() {
         const year = event.date ? new Date(`${event.date}T00:00:00Z`).getUTCFullYear() : null
         return <button className="past-event-row" key={event.id} data-reveal aria-haspopup="dialog" aria-label={`View details for ${event.name}`} onClick={click => { trigger.current = click.currentTarget; setSelected(event.id) }}>
           <img className="past-event-thumb" src={event.imageUrl} alt="" width="150" height="130" loading="lazy" />
-          <div className="past-event-info">
-            <h3 className="past-event-name">{event.name}</h3>
+          <div className="past-event-info">{event.eventNumber && <span className="event-number">Event No. {event.eventNumber}</span>}<h3 className="past-event-name">{event.name}</h3>
             <p className="past-event-venue">{eventVenueLabel(event)}{year ? ` · ${year}` : ''}</p>
           </div>
           <div className="past-event-date">
