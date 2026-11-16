@@ -34,6 +34,11 @@ ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS description text NOT NULL DEFAUL
 ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS stops jsonb NOT NULL DEFAULT '[]';
 ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS date_tba boolean NOT NULL DEFAULT false;
 ALTER TABLE trn_events ALTER COLUMN event_date DROP NOT NULL;
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS is_past boolean NOT NULL DEFAULT false;
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS organizer text NOT NULL DEFAULT '';
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS organizer_message text NOT NULL DEFAULT '';
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS event_number text NOT NULL DEFAULT '';
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS organizer_type text NOT NULL DEFAULT 'org' CHECK (organizer_type IN ('org','tour'));
 INSERT INTO trn_media(id,kind,pathname,owner,name,url,content_type,size,storage_bucket)
  SELECT '00000000-0000-4000-8000-000000000002','event','trn/original/IMG_0674.JPG.jpeg','event-seed','IMG_0674.JPG.jpeg',
  COALESCE(NULLIF(gallery_base_url,''),'/media') || '/IMG_0674.JPG.jpeg','image/jpeg',164477,'media'

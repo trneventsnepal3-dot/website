@@ -1,5 +1,5 @@
 import './events.css'
-import { eventDateLabel, eventLocationLabel, formatEventDate, useEvents } from '../events'
+import { eventDateLabel, eventVenueLabel, formatEventDate, useEvents, usePastEvents } from '../events'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, X } from '@phosphor-icons/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -28,22 +28,112 @@ export default function UpcomingEvents() {
       <div className="events-heading" data-reveal><h2 id="events-title">Live events.</h2></div>
       <div className="events-list">{events.map(event => <article key={event.id}>
         <button className="event-row" aria-label={`View details for ${event.name}`} aria-haspopup="dialog" onClick={click => { trigger.current = click.currentTarget; setSelected(event.id) }}>
-          <img src={event.imageUrl} alt="" width="240" height="180" loading="lazy" />
-          <div className="event-info"><h3>{event.name}</h3><p>{event.type === 'tour' ? `${event.artist} · ${event.stops.length} shows` : event.location}</p></div>
-          <div className="event-date"><p>{eventDateLabel(event)}</p><span>View {event.type === 'tour' ? 'tour dates' : 'event details'} <ArrowUpRight size={18} aria-hidden="true" /></span></div>
+          <img className="event-thumb" src={event.imageUrl} alt="" width="150" height="130" loading="lazy" />
+          <div className="event-info">{event.eventNumber && <span className="event-number">Event No. {event.eventNumber}</span>}<h3>{event.name}</h3><p>{event.type === 'tour' ? `${event.artist} · ${event.stops.length} shows` : event.location}</p></div>
+          <div className="event-date"><span className="event-status">Upcoming</span><p>{eventDateLabel(event)}</p><span className="event-view">View {event.type === 'tour' ? 'tour dates' : 'event details'} <ArrowUpRight size={18} aria-hidden="true" /></span></div>
         </button>
       </article>)}</div>
     </section>
-    <dialog ref={dialog} className="event-dialog" aria-labelledby="event-dialog-title" onCancel={close} onClose={() => { if (selected) close() }} onClick={event => {
+    <dialog ref={dialog} className="past-event-dialog" aria-labelledby="event-dialog-title" onCancel={close} onClose={() => { if (selected) close() }} onClick={event => {
       if (event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close() }
     }}>
       {active && <><button className="event-close icon-button" onClick={close} aria-label="Close event details" autoFocus><X size={24} /></button>
-        <div className="event-dialog-layout"><div className="event-dialog-artwork"><img src={active.imageUrl} alt={`${active.name} artwork`} /></div>
-          <div className="event-dialog-details"><h2 id="event-dialog-title">{active.name}</h2>{active.artist && <p className="event-artist">{active.artist}</p>}
-            <p>{eventDateLabel(active)}</p>{active.type === 'concert' && <p>{eventLocationLabel(active)}</p>}
-            {active.description && <p className="event-description">{active.description}</p>}
-            {active.type === 'tour' && <section className="event-schedule" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => <li key={`${stop.date}-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol></section>}
-          </div></div></>}
+        <div className="past-dialog-artwork"><img src={active.imageUrl} alt={`${active.name} artwork`} /></div>
+        <div className="past-dialog-body">
+          <div className="past-dialog-head">
+            <span className="past-dialog-badge is-upcoming">Upcoming event</span>
+            {active.eventNumber && <span className="past-dialog-number">Event No. {active.eventNumber}</span>}
+          </div>
+          <h2 id="event-dialog-title">{active.name}</h2>
+          {(active.description || active.organizerMessage) && <p className="past-dialog-tagline">{active.description || active.organizerMessage}</p>}
+          <div className="past-dialog-tags">
+            <span className="past-dialog-tag">{active.type === 'tour' ? 'TOUR' : 'LIVE CONCERT'}</span>
+            {active.date && <span className="past-dialog-tag">{new Date(`${active.date}T00:00:00Z`).getUTCFullYear()}</span>}
+            <span className="past-dialog-tag">{active.type === 'tour' ? `${active.stops.length} shows` : active.location}</span>
+          </div>
+          <dl className="past-dialog-info">
+            <div><dt>Date</dt><dd>{eventDateLabel(active)}</dd></div>
+            <div><dt>{active.type === 'tour' ? 'Shows' : 'Venue'}</dt><dd>{eventVenueLabel(active)}</dd></div>
+            {active.artist && <div><dt>Artist</dt><dd>{active.artist}</dd></div>}
+            {active.organizer && <div><dt>{active.organizerType === 'tour' ? 'Tour by' : 'Org by'}</dt><dd>{active.organizer}</dd></div>}
+          </dl>
+          {active.organizerMessage && active.description && <div className="past-dialog-note"><h3>A note from the organiser</h3><p>{active.organizerMessage}</p></div>}
+          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => <li key={`${stop.date}-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol></section>}
+        </div></>}
+    </dialog>
+  </>
+}
+
+export function PastEvents() {
+  const events = usePastEvents()
+  const dialog = useRef<HTMLDialogElement>(null)
+  const trigger = useRef<HTMLElement | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
+  const active = events?.find(event => event.id === selected)
+  const close = () => { setSelected(null); trigger.current?.focus({ preventScroll: true }) }
+  useEffect(() => { ScrollTrigger.refresh() }, [events])
+  useEffect(() => {
+    if (active && !dialog.current?.open) dialog.current?.showModal()
+    if (!active && dialog.current?.open) dialog.current.close()
+  }, [active])
+  useEffect(() => {
+    if (!active) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previous }
+  }, [Boolean(active)])
+  if (!events?.length) return null
+  return <>
+    <section className="events section-pad past-events" id="past-events" aria-labelledby="past-events-title">
+      <div className="events-heading" data-reveal><h2 id="past-events-title">Past events.</h2><p>The nights we have shared together.</p></div>
+      <div className="past-events-list">{events.map(event => {
+        const year = event.date ? new Date(`${event.date}T00:00:00Z`).getUTCFullYear() : null
+        return <button className="past-event-row" key={event.id} data-reveal aria-haspopup="dialog" aria-label={`View details for ${event.name}`} onClick={click => { trigger.current = click.currentTarget; setSelected(event.id) }}>
+          <img className="past-event-thumb" src={event.imageUrl} alt="" width="150" height="130" loading="lazy" />
+          <div className="past-event-info">
+            <h3 className="past-event-name">{event.name}</h3>
+            <p className="past-event-venue">{eventVenueLabel(event)}{year ? ` · ${year}` : ''}</p>
+          </div>
+          <div className="past-event-date">
+            <span className="past-event-status">Completed</span>
+            <p>{eventDateLabel(event)}</p>
+            <span className="past-event-view">View event details <ArrowUpRight size={18} aria-hidden="true" /></span>
+          </div>
+        </button>
+      })}</div>
+    </section>
+    <dialog ref={dialog} className="past-event-dialog" aria-labelledby="past-dialog-title" onCancel={close} onClose={() => { if (selected) close() }} onClick={event => {
+      if (event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close() }
+    }}>
+      {active && <>
+        <button className="event-close icon-button" onClick={close} aria-label="Close event details" autoFocus><X size={24} /></button>
+        {active.imageUrl
+          ? <div className="past-dialog-artwork"><img src={active.imageUrl} alt={`${active.name} poster`} /></div>
+          : <div className="past-dialog-artwork past-dialog-artwork-empty"><span>Event poster unavailable</span></div>}
+        <div className="past-dialog-body">
+          <div className="past-dialog-head">
+            <span className="past-dialog-badge">Completed event</span>
+            {active.eventNumber && <span className="past-dialog-number">Event No. {active.eventNumber}</span>}
+          </div>
+          <h2 id="past-dialog-title">{active.name}</h2>
+          {(active.organizerMessage || active.description) && <p className="past-dialog-tagline">{active.organizerMessage || active.description}</p>}
+          <div className="past-dialog-tags">
+            <span className="past-dialog-tag">{active.type === 'tour' ? 'TOUR' : 'LIVE CONCERT'}</span>
+            {active.date && <span className="past-dialog-tag">{new Date(`${active.date}T00:00:00Z`).getUTCFullYear()}</span>}
+            <span className="past-dialog-tag">{active.location}</span>
+          </div>
+          <dl className="past-dialog-info">
+            <div><dt>Date</dt><dd>{eventDateLabel(active)}</dd></div>
+            <div><dt>{active.type === 'tour' ? 'Shows' : 'Venue'}</dt><dd>{eventVenueLabel(active)}</dd></div>
+            {active.artist && <div><dt>Artist</dt><dd>{active.artist}</dd></div>}
+            {active.organizer && <div><dt>{active.organizerType === 'tour' ? 'Tour by' : 'Org by'}</dt><dd>{active.organizer}</dd></div>}
+          </dl>
+          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="past-tour-title">
+            <h3 id="past-tour-title">Tour dates</h3>
+            <ol>{active.stops.map((stop, index) => <li key={`${stop.date}-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol>
+          </section>}
+        </div>
+      </>}
     </dialog>
   </>
 }

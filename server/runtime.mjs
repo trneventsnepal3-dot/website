@@ -58,6 +58,7 @@ export function createHandler({ env = process.env, query, storage = createStorag
       const method = req.method;
       if (path === '/api/site-settings' && method === 'GET') return send(200, await settings());
       if (path === '/api/events' && method === 'GET') return send(200, await events.list());
+      if (path === '/api/past-events' && method === 'GET') return send(200, await events.list(false, true));
       if (path === '/api/gallery' && method === 'GET') return send(200, await gallery.list());
       if (path === '/api/albums' && method === 'GET') return send(200, await albums.list());
       if (!path.startsWith('/api/admin/')) fail(404, 'Not found.');

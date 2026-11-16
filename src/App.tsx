@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUpRight, Pause, Play } from '@phosphor-icons/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import UpcomingEvents from './components/Events'
+import UpcomingEvents, { PastEvents } from './components/Events'
 import SiteMedia from './components/SiteMedia'
 import Gallery from './components/Gallery'
 import { useSiteSettings } from './settings'
@@ -104,6 +104,7 @@ function App() {
           </button>}
         </section>
         <UpcomingEvents />
+        <PastEvents />
         <Gallery />
         <section className="about section-pad" id="about" aria-labelledby="about-title">
           <div className="about-heading"><h2 id="about-title" data-reveal>The TRN way.</h2><p data-reveal>Live events, concerts and festivals.</p></div>

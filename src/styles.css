@@ -57,12 +57,11 @@ svg { flex-shrink: 0; }
 .promo-dialog img { width: 100%; max-height: 85svh; object-fit: contain; }
 .promo-close { position: absolute; top: 10px; right: 10px; z-index: 1; padding: 10px; background: #111; color: white; display: flex; }
 .music-control { position: fixed; bottom: 20px; right: 20px; z-index: 8; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #f4f4f4; color: #171817; font-size: 13px; }
-.hero-title { position: absolute; inset: 115px var(--gutter) 24px; display: flex; flex-direction: column; justify-content: space-between; font-size: clamp(104px, 22vw, 340px); line-height: .9; letter-spacing: -.035em; transform-origin: center; }
+.hero-title { position: absolute; inset: 115px var(--gutter) 24px; display: flex; flex-direction: row; align-items: flex-start; gap: clamp(12px, 3vw, 48px); font-size: clamp(48px, 11vw, 150px); line-height: .9; letter-spacing: -.035em; transform-origin: center; }
 .hero-title span { display: block; }
-.hero-title span:last-child { text-align: right; }
-.hero-copy { position: absolute; top: 47%; left: 34%; }
-.hero-copy p { font-size: clamp(18px, 1.5vw, 22px); line-height: 1.4; }
-.hero-copy .button { margin-top: 28px; }
+.hero-copy { position: absolute; top: 47%; left: var(--gutter); }
+.hero-copy p { font-size: clamp(22px, 2vw, 30px); line-height: 1.4; }
+.hero-copy .button { margin-top: 28px; font-size: clamp(16px, 1.1vw, 20px); padding: 16px 28px; }
 .video-control { position: absolute; left: var(--gutter); bottom: 34px; display: flex; gap: 12px; align-items: center; min-height: 44px; font-size: var(--size-small); padding: 0; }
 .gallery { padding-block: 88px 56px; }
 .section-heading { display: flex; justify-content: space-between; align-items: end; gap: 28px; margin-bottom: 32px; }
@@ -114,8 +113,8 @@ dialog::backdrop { background: rgb(0 0 0 / 85%); }
 @media (max-width: 1000px) {
   :root { --gutter: 24px; }
   .hero { height: 880px; max-height: 100svh; min-height: 700px; }
-  .hero-title { top: 130px; font-size: 22vw; }
-  .hero-copy { left: 34%; }
+  .hero-title { top: 130px; font-size: 13vw; }
+  .hero-copy { left: var(--gutter); }
   .about { grid-template-columns: 1fr 1.5fr; gap: 40px; }
   .footer-top { grid-template-columns: 1.5fr 1fr; gap: 28px; }
   .footer-partner { grid-column: 2; }
@@ -127,12 +126,11 @@ dialog::backdrop { background: rgb(0 0 0 / 85%); }
   .site-header nav { gap: 20px; justify-content: end; }
   .site-header nav a { font-size: var(--size-small); }
   .hero { min-height: 660px; height: 92svh; max-height: 820px; }
-  .hero-title { inset: 120px var(--gutter) 30px; font-size: 23vw; line-height: 1; }
-  .hero-title span:last-child { font-size: 27vw; }
+  .hero-title { inset: 120px var(--gutter) 30px; font-size: 13vw; line-height: 1; }
   .hero-media video { object-position: 56% center; }
   .hero-shade { background: rgb(0 0 0 / 48%); }
   .hero-copy { left: var(--gutter); right: var(--gutter); top: 43%; }
-  .hero-copy p { font-size: 18px; }
+  .hero-copy p { font-size: 20px; }
   .hero-copy .button { margin-top: 24px; }
   .video-control { bottom: 31px; width: 44px; justify-content: center; background: rgb(0 0 0 / 55%); }
   .video-control span { display: none; }
@@ -165,5 +163,5 @@ dialog::backdrop { background: rgb(0 0 0 / 85%); }
 }
 @media (max-height: 790px) and (min-width: 601px) {
   .hero { min-height: 620px; }
-  .hero-title { font-size: min(22vw, 32svh); }
+  .hero-title { font-size: min(13vw, 20svh); }
 }
