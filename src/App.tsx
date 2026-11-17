@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowUpRight, Pause, Play } from '@phosphor-icons/react'
+import { ArrowDown, ArrowUp, ArrowUpRight, Pause, Play } from '@phosphor-icons/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import UpcomingEvents, { PastEvents } from './components/Events'
@@ -15,6 +15,13 @@ const socials = [
   { label: 'TikTok', href: 'https://www.tiktok.com/@trn_events_nepal' },
 ]
 
+// TEMP photos pulled from the TRN gallery — to be replaced with the user's chosen shots
+const wayBlocks = [
+  { number: '01', title: 'Live performances', text: 'Bringing your favourite artists to the stage.', image: 'https://br-little-lab-b442l9qo.storage.c-6.us-east-2.aws.neon.tech/media/trn/original/IMG_0665.JPEG', alt: 'A singer in a red jacket performs into the microphone as the crowd raises their phones' },
+  { number: '02', title: 'Artist experiences', text: 'Creating special moments between artists and audiences.', image: 'https://br-little-lab-b442l9qo.storage.c-6.us-east-2.aws.neon.tech/media/trn/original/IMG_0662.JPEG', alt: 'A performer kneels beside the crowd as the front rows sing along' },
+  { number: '03', title: 'Unforgettable nights', text: 'Making every concert a memory worth keeping.', image: 'https://br-little-lab-b442l9qo.storage.c-6.us-east-2.aws.neon.tech/media/trn/original/IMG_0674.JPG.jpeg', alt: 'A singer faces a crowd of phone lights' },
+]
+
 function App() {
   const settings = useSiteSettings()
   const filmEnabled = settings.effectsEnabled && settings.heroVideoEnabled
@@ -25,6 +32,7 @@ function App() {
   const [videoPlaying, setVideoPlaying] = useState(false)
   const videoPaused = useRef(false)
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
 
   useEffect(() => {
     const media = gsap.matchMedia()
@@ -106,19 +114,62 @@ function App() {
         <UpcomingEvents />
         <PastEvents />
         <Gallery />
-        <section className="about section-pad" id="about" aria-labelledby="about-title">
-          <div className="about-heading"><h2 id="about-title" data-reveal>The TRN way.</h2><p data-reveal>Live events, concerts and festivals.</p></div>
-          <div className="about-copy"><p className="about-lead" data-reveal>You bring the people.<br />We bring it together.</p><p data-reveal>From the first idea to the final encore, our team brings together the stage, sound and production. We take care of the details that make a night worth remembering.</p></div>
+        <section className="way section-pad" id="about" aria-labelledby="way-title">
+          <div className="way-intro" data-reveal>
+            <div>
+              <p className="way-label">What we do</p>
+              <h2 className="way-title" id="way-title">We bring<br /><span className="way-stroke">live music</span> to life.</h2>
+            </div>
+            <p className="way-desc">Bringing artists and audiences together through unforgettable live concerts, incredible performances and nights worth remembering.</p>
+          </div>
+          <div className="way-grid">
+            {wayBlocks.map(block => (
+              <figure className="way-block" key={block.number} data-reveal>
+                <div className="way-photo"><img src={block.image} alt={block.alt} loading="lazy" /></div>
+                <figcaption className="way-caption">
+                  <span className="way-num" aria-hidden="true">{block.number}</span>
+                  <div className="way-caption-copy"><h3>{block.title}</h3><p>{block.text}</p></div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </section>
       </main>
-      <footer className="footer section-pad" id="contact">
-        <div className="footer-top">
-          <div className="footer-invite" data-reveal><h2>Your next great night.</h2><a className="button footer-email" href="mailto:trneventsnepal3@gmail.com"><span>trneventsnepal3@gmail.com</span><ArrowUpRight size={20} aria-hidden="true" /></a></div>
-          <div className="footer-socials" data-reveal>{socials.map(social => <a key={social.label} href={social.href} target="_blank" rel="noreferrer">{social.label}</a>)}</div>
-          <div className="footer-partner" data-reveal><p>Our friends at</p><a href="https://mamagharentertainment.com" target="_blank" rel="noreferrer">Mamaghar<br />Entertainment</a></div>
+      <footer className="footer" id="contact">
+        <div className="footer-cta" data-reveal>
+          <div className="footer-cta-copy">
+            <h2 className="footer-cta-heading"><a className="footer-cta-link" href="mailto:trneventsnepal3@gmail.com">Let's make your<br />next event <span className="footer-stroke">unforgettable.</span></a></h2>
+          </div>
+          <a className="footer-cta-button" href="mailto:trneventsnepal3@gmail.com"><span>Plan your event</span><ArrowUpRight size={20} aria-hidden="true" /></a>
         </div>
-        <a className="footer-wordmark" href="#home" aria-label="TRN Nepal, back to top">TRN NEPAL</a>
-        <div className="footer-bottom"><p>© {new Date().getFullYear()} TRN Events Nepal</p><a href="#home">Back to top ↑</a></div>
+        <div className="footer-grid">
+          <nav className="footer-col" data-reveal aria-label="Explore">
+            <h3 className="footer-heading">Explore</h3>
+            <ul className="footer-links">
+              <li><a href="#home">Home</a></li>
+              <li><a href="#upcoming">Upcoming Events</a></li>
+              <li><a href="#upcoming">Live Events</a></li>
+              <li><a href="#past-events">Past Events</a></li>
+            </ul>
+          </nav>
+          <div className="footer-col" data-reveal>
+            <h3 className="footer-heading">Get in touch</h3>
+            <ul className="footer-links">
+              <li><a href="#contact">Contact Us</a></li>
+              <li><a href="mailto:trneventsnepal3@gmail.com">trneventsnepal3@gmail.com</a></li>
+            </ul>
+          </div>
+          <div className="footer-col" data-reveal>
+            <h3 className="footer-heading">Follow us</h3>
+            <ul className="footer-links">{socials.map(social => <li key={social.label}><a href={social.href} target="_blank" rel="noreferrer">{social.label}</a></li>)}</ul>
+          </div>
+        </div>
+        <a className="footer-wordmark" href="#home" aria-label="TRN Events Nepal, back to top">TRN EVENTS NEPAL</a>
+        <div className="footer-bottom">
+          <p>© {new Date().getFullYear()} TRN Events Nepal. All Rights Reserved.</p>
+          <div className="footer-legal"><span>Privacy Policy</span><span aria-hidden="true">|</span><span>Terms &amp; Conditions</span></div>
+          <button className="footer-top-button" type="button" onClick={scrollToTop}>Back to top<ArrowUp size={16} aria-hidden="true" /></button>
+        </div>
       </footer>
       <SiteMedia settings={settings} />
 

@@ -1,38 +1,46 @@
 .events { background: var(--paper); color: var(--ink); padding-block: 72px; }
-.events-heading { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 36px; }
+.events-heading { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin-bottom: 40px; }
 .events-heading h2 { font-size: var(--size-heading); }
+.events-heading h2::before { content: ''; display: block; width: 34px; height: 3px; margin-bottom: 14px; background: var(--accent); }
 .events-heading p { color: var(--soft-ink); max-width: 40ch; }
 .events-list { display: grid; }
 
-.event-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; align-items: center; gap: 44px; width: 100%; padding: 22px 16px; text-align: left; background: transparent; border-bottom: 1px solid rgb(23 24 23 / 10%); transition: background 240ms var(--ease); }
+.event-row { display: grid; grid-template-columns: 172px minmax(0, 1fr) auto; align-items: center; gap: 40px; width: 100%; padding: 26px 18px; text-align: left; background: transparent; border-bottom: 1px solid rgb(23 24 23 / 8%); transition: background 280ms var(--ease); }
 .event-row:hover { background: var(--white); }
+.events-list article:last-child .event-row { border-bottom: 0; }
 
-.event-thumb { width: 150px; height: 130px; object-fit: cover; object-position: center; background: var(--surface); border-radius: 6px; filter: grayscale(40%); transition: filter 320ms var(--ease), transform 320ms var(--ease); }
-.event-row:hover .event-thumb { filter: none; transform: scale(1.02); }
+.event-thumb { width: 172px; height: 146px; object-fit: cover; object-position: center; background: var(--surface); border-radius: 8px; filter: grayscale(45%); transition: filter 450ms var(--ease), transform 450ms var(--ease); }
+.event-row:hover .event-thumb { filter: none; transform: scale(1.03); }
 
 .event-info { min-width: 0; overflow-wrap: anywhere; }
-.event-number { font-size: var(--size-small); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--soft-ink); }
+.event-number { font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--soft-ink); }
 .event-info .event-number, .past-event-info .event-number { display: block; margin-bottom: 8px; }
 .event-dialog-details .event-number { margin-bottom: 12px; }
 .event-info h3 { font-size: var(--size-heading); line-height: 1.05; }
-.event-info p { margin-top: 10px; font-size: 15px; color: var(--soft-ink); }
+.event-info p { margin-top: 10px; font-size: 16px; font-weight: 500; letter-spacing: -.01em; color: rgb(23 24 23 / 72%); }
 .event-row:hover .event-info h3 { color: var(--accent); }
 
-.event-status { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-.event-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.event-status { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid rgb(215 25 63 / 35%); border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); transition: background 240ms var(--ease), color 240ms var(--ease); }
+.event-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 .event-date { display: flex; flex-direction: column; align-items: flex-start; max-width: 40ch; }
-.event-date p { font-size: var(--size-lead); line-height: 1.3; letter-spacing: -.03em; }
-.event-view { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: var(--size-small); line-height: 1.5; }
+.event-date p { font-size: var(--size-lead); font-weight: 600; line-height: 1.3; letter-spacing: -.02em; }
+.event-view { position: relative; display: inline-flex; align-items: center; gap: 10px; margin-top: 14px; padding-bottom: 4px; font-size: var(--size-small); font-weight: 500; line-height: 1.5; }
+.event-view::after { content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform 320ms var(--ease); }
 .event-view svg { transition: transform 220ms var(--ease); }
 .event-row:hover .event-view { color: var(--accent); }
+.event-row:hover .event-view::after { transform: scaleX(1); }
 .event-row:hover .event-view svg { transform: translate(3px, -2px); }
 
+@media (hover: hover) {
+  .event-row:hover .event-status, .past-event-row:hover .past-event-status { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .past-event-row:hover .past-event-status { background: #178a4c; border-color: #178a4c; }
+}
 @media (max-width: 1000px) {
   .events { padding-block: 56px; }
   .events-heading { margin-bottom: 32px; }
-  .event-row { grid-template-columns: 110px minmax(0, 1fr) auto; gap: 20px 28px; padding: 18px 10px; }
-  .event-thumb { width: 110px; height: 110px; }
+  .event-row { grid-template-columns: 136px minmax(0, 1fr) auto; gap: 20px 26px; padding: 20px 12px; }
+  .event-thumb { width: 136px; height: 120px; }
 }
 @media (max-width: 600px) {
   .events { padding-block: 44px; }
@@ -40,41 +48,44 @@
   .events-heading > p { margin-top: 8px; }
 }
 @media (max-width: 768px) {
-  .event-row { grid-template-columns: minmax(92px, auto) 1fr auto; grid-template-areas: "num status status" "thumb title title" "thumb venue venue" "date date view"; row-gap: 10px; column-gap: 14px; padding: 16px 6px; }
+  .event-row { grid-template-columns: minmax(92px, auto) 1fr auto; grid-template-areas: "num status status" "thumb title title" "thumb venue venue" "date date view"; row-gap: 12px; column-gap: 16px; padding: 20px 6px 22px; }
   .event-info, .event-date { display: contents; }
   .event-row .event-number { grid-area: num; margin: 0; align-self: end; font-size: 12px; white-space: nowrap; }
-  .event-status { grid-area: status; justify-self: end; align-self: end; font-size: 10px; letter-spacing: .1em; gap: 6px; }
+  .event-status { grid-area: status; justify-self: end; align-self: end; padding: 5px 11px; font-size: 9px; letter-spacing: .12em; gap: 6px; }
   .event-status::before { width: 5px; height: 5px; }
   .event-thumb { grid-area: thumb; width: 92px; height: 92px; border-radius: 8px; }
   .event-info h3 { grid-area: title; font-size: 22px; }
-  .event-info p { grid-area: venue; margin-top: 0; font-size: 14px; }
-  .event-date p { grid-area: date; align-self: center; font-size: 15px; white-space: nowrap; }
-  .event-view { grid-area: view; justify-self: end; align-self: center; margin: 0; white-space: nowrap; }
+  .event-info p { grid-area: venue; margin-top: 2px; font-size: 14px; }
+  .event-date p { grid-area: date; align-self: center; font-size: 15px; min-width: 0; overflow-wrap: break-word; }
+  .event-view { grid-area: view; justify-self: end; align-self: center; margin: 0; padding-bottom: 3px; white-space: nowrap; }
 }
 /* ---------- Past events ---------- */
-.past-events { padding-block: 72px; border-top: 1px solid rgb(23 24 23 / 12%); }
+.past-events { padding-block: 72px; border-top: 1px solid rgb(23 24 23 / 8%); }
 .past-events .events-heading { align-items: end; margin-bottom: 40px; }
 .past-events-list { display: grid; }
 
-.past-event-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; align-items: center; gap: 44px; width: 100%; padding: 22px 16px; text-align: left; background: transparent; border-bottom: 1px solid rgb(23 24 23 / 10%); transition: background 240ms var(--ease); }
+.past-event-row { display: grid; grid-template-columns: 172px minmax(0, 1fr) auto; align-items: center; gap: 40px; width: 100%; padding: 26px 18px; text-align: left; background: transparent; border-bottom: 1px solid rgb(23 24 23 / 8%); transition: background 280ms var(--ease); }
 .past-event-row:hover { background: var(--white); }
+.past-events-list .past-event-row:last-child { border-bottom: 0; }
 
-.past-event-thumb { width: 150px; height: 130px; object-fit: cover; object-position: center; background: var(--surface); border-radius: 6px; filter: grayscale(40%); transition: filter 320ms var(--ease), transform 320ms var(--ease); }
-.past-event-row:hover .past-event-thumb { filter: none; transform: scale(1.02); }
+.past-event-thumb { width: 172px; height: 146px; object-fit: cover; object-position: center; background: var(--surface); border-radius: 8px; filter: grayscale(55%); transition: filter 450ms var(--ease), transform 450ms var(--ease); }
+.past-event-row:hover .past-event-thumb { filter: none; transform: scale(1.03); }
 
 .past-event-info { min-width: 0; }
 .past-event-name { font-size: var(--size-heading); line-height: 1.05; overflow-wrap: anywhere; }
-.past-event-venue { margin-top: 10px; font-size: 15px; color: var(--soft-ink); }
+.past-event-venue { margin-top: 10px; font-size: 16px; font-weight: 500; letter-spacing: -.01em; color: rgb(23 24 23 / 72%); }
 
-.past-event-status { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #178a4c; }
-.past-event-status::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.past-event-status { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid rgb(23 138 76 / 35%); border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #178a4c; transition: background 240ms var(--ease), color 240ms var(--ease); }
+.past-event-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 .past-event-date { display: flex; flex-direction: column; align-items: flex-start; max-width: 40ch; }
-.past-event-date p { font-size: var(--size-lead); line-height: 1.3; letter-spacing: -.03em; }
-.past-event-view { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: var(--size-small); line-height: 1.5; }
+.past-event-date p { font-size: var(--size-lead); font-weight: 600; line-height: 1.3; letter-spacing: -.02em; }
+.past-event-view { position: relative; display: inline-flex; align-items: center; gap: 10px; margin-top: 14px; padding-bottom: 4px; font-size: var(--size-small); font-weight: 500; line-height: 1.5; }
+.past-event-view::after { content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform 320ms var(--ease); }
 .past-event-view svg { transition: transform 220ms var(--ease); }
 .past-event-row:hover .past-event-name { color: var(--accent); }
 .past-event-row:hover .past-event-view { color: var(--accent); }
+.past-event-row:hover .past-event-view::after { transform: scaleX(1); }
 .past-event-row:hover .past-event-view svg { transform: translate(3px, -2px); }
 
 /* ---------- Past event dialog ---------- */
@@ -117,8 +128,8 @@
 @media (max-width: 1000px) {
   .past-events { padding-block: 56px; }
   .past-events .events-heading { margin-bottom: 32px; }
-  .past-event-row { grid-template-columns: 110px minmax(0, 1fr) auto; gap: 20px 28px; padding: 18px 10px; }
-  .past-event-thumb { width: 110px; height: 110px; }
+  .past-event-row { grid-template-columns: 136px minmax(0, 1fr) auto; gap: 20px 26px; padding: 20px 12px; }
+  .past-event-thumb { width: 136px; height: 120px; }
 }
 
 @media (max-width: 600px) {
@@ -133,16 +144,20 @@
   .past-dialog-stops { margin-top: 22px; padding-top: 20px; }
 }
 @media (max-width: 768px) {
-  .past-event-row { grid-template-columns: minmax(92px, auto) 1fr auto; grid-template-areas: "num status status" "thumb title title" "thumb venue venue" "date date view"; row-gap: 10px; column-gap: 14px; padding: 16px 6px; }
+  .past-event-row { grid-template-columns: minmax(92px, auto) 1fr auto; grid-template-areas: "num status status" "thumb title title" "thumb venue venue" "date date view"; row-gap: 12px; column-gap: 16px; padding: 20px 6px 22px; }
   .past-event-info, .past-event-date { display: contents; }
   .past-event-row .event-number { grid-area: num; margin: 0; align-self: end; font-size: 12px; white-space: nowrap; }
-  .past-event-status { grid-area: status; justify-self: end; align-self: end; font-size: 10px; letter-spacing: .1em; gap: 6px; }
+  .past-event-status { grid-area: status; justify-self: end; align-self: end; padding: 5px 11px; font-size: 9px; letter-spacing: .12em; gap: 6px; }
   .past-event-status::before { width: 5px; height: 5px; }
   .past-event-thumb { grid-area: thumb; width: 92px; height: 92px; border-radius: 8px; }
   .past-event-name { grid-area: title; font-size: 22px; }
-  .past-event-venue { grid-area: venue; margin-top: 0; font-size: 14px; }
-  .past-event-date p { grid-area: date; align-self: center; font-size: 15px; white-space: nowrap; }
-  .past-event-view { grid-area: view; justify-self: end; align-self: center; margin: 0; white-space: nowrap; }
+  .past-event-venue { grid-area: venue; margin-top: 2px; font-size: 14px; }
+  .past-event-date p { grid-area: date; align-self: center; font-size: 15px; min-width: 0; overflow-wrap: break-word; }
+  .past-event-view { grid-area: view; justify-self: end; align-self: center; margin: 0; padding-bottom: 3px; white-space: nowrap; }
+}
+@media (max-width: 480px) {
+  .event-row, .past-event-row { grid-template-areas: "num status status" "thumb title title" "thumb venue venue" "date date date" "view view view"; }
+  .event-view, .past-event-view { justify-self: start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
