@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from './settings'
 export type EventStop = { date: string; dateTba: boolean; location: string }
-export type LiveEvent = { id: string; revision: number; name: string; location: string; date: string; dateTba: boolean; imageId: string; imageUrl: string; published: boolean; type: 'concert' | 'tour'; artist: string; description: string; stops: EventStop[]; isPast: boolean; organizer: string; organizerType: 'org' | 'tour'; organizerMessage: string; eventNumber: string }
+export type LiveEvent = { id: string; revision: number; name: string; location: string; date: string; dateTba: boolean; imageId: string; imageUrl: string; published: boolean; type: 'concert' | 'tour'; artist: string; description: string; stops: EventStop[]; isPast: boolean; organizer: string; organizerType: 'org' | 'tour'; organizerMessage: string; eventNumber: string; musicId: string | null; musicUrl: string | null; musicName: string | null }
 export const TBA_LABEL = 'To be Announced'
 export const formatEventDate = (value: string) => value ? new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`)) : TBA_LABEL
 export const eventDateLabel = (event: LiveEvent) => {

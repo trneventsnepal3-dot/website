@@ -5,7 +5,7 @@ import { eventDateLabel, eventLocationLabel, TBA_LABEL, type LiveEvent } from '.
 import { uploadMedia } from '../upload'
 
 type Draft = Omit<LiveEvent, 'id'> & { id: string | null }
-const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [], isPast: false, organizer: '', organizerType: 'org', organizerMessage: '', eventNumber: '' })
+const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [], isPast: false, organizer: '', organizerType: 'org', organizerMessage: '', eventNumber: '', musicId: null, musicUrl: null, musicName: null })
 export default function EventManager({ uploadsAvailable }: { uploadsAvailable: boolean }) {
   const [events, setEvents] = useState<LiveEvent[]>([])
   const [draft, setDraft] = useState<Draft>(empty)
@@ -14,13 +14,15 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
   const [loadFailed, setLoadFailed] = useState(false)
   const [working, setWorking] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [musicUploading, setMusicUploading] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [musicProgress, setMusicProgress] = useState(0)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [removing, setRemoving] = useState<string | null>(null)
   const nameInput = useRef<HTMLInputElement>(null)
   const dirty = JSON.stringify(draft) !== saved
-  const busy = working || uploading
+  const busy = working || uploading || musicUploading
   const choose = (value: Draft) => { setDraft(value); setSaved(JSON.stringify(value)); setError(''); setNotice(''); setRemoving(null) }
   const load = async () => {
     setLoading(true); setLoadFailed(false)
@@ -64,12 +66,20 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
     try { const media = await uploadMedia('event', file, setProgress); setDraft(current => ({ ...current, imageId: media.id, imageUrl: media.url })); setNotice('Photo uploaded. Save the event to publish it.') }
     catch(e) { setError((e as Error).message) } finally { setUploading(false) }
   }
+  async function music(file?: File) {
+    if (!file) return
+    setError(''); setNotice('')
+    if (!file.type.startsWith('audio/')) { setError('Choose an audio file (MP3, WAV, OGG, M4A or AAC).'); return }
+    setMusicUploading(true); setMusicProgress(0)
+    try { const media = await uploadMedia('audio', file, setMusicProgress); setDraft(current => ({ ...current, musicId: media.id, musicUrl: media.url, musicName: media.name })); setNotice('Music uploaded. Save the event to publish it.') }
+    catch(e) { setError((e as Error).message) } finally { setMusicUploading(false) }
+  }
   async function save() {
     setError(''); setNotice('')
     if (!draft.imageId) { setError('Upload an event photo first.'); return }
     setWorking(true)
     try {
-      const { id, imageUrl, ...fields } = draft; void imageUrl
+      const { id, imageUrl, musicUrl, musicName, ...fields } = draft; void imageUrl; void musicUrl; void musicName
       const stops = draft.type === 'tour' ? fields.stops.map(stop => ({ ...stop, date: stop.dateTba || !stop.date ? undefined : stop.date })) : fields.stops
       const payload = { ...fields, date: draft.type === 'tour' || draft.dateTba || !fields.date ? undefined : fields.date, location: draft.type === 'tour' || !fields.location ? undefined : fields.location, stops }
       const route = `admin/events${id ? `/${id}` : ''}`
@@ -119,6 +129,12 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
         <label className="admin-field admin-event-format">Event format<select value={draft.type} onChange={event => changeType(event.target.value as Draft['type'])}><option value="concert">Single</option><option value="tour">Tour</option></select></label>
         <div className="admin-event-fields"><div className="admin-event-artwork"><div className="admin-event-photo">{draft.imageUrl ? <img src={draft.imageUrl} alt={draft.name ? `${draft.name} preview` : 'Event photo preview'} /> : <div><Image size={28} weight="light" /><p>Add the event artwork</p></div>}</div>
         <label className={`admin-upload ${!uploadsAvailable ? 'is-disabled' : ''}`}><UploadSimple size={17} />{uploading ? `Uploading ${progress}%` : draft.imageUrl ? 'Replace event photo' : 'Upload event photo'}<input aria-label="Event photo" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={!uploadsAvailable || busy} onChange={event => { void image(event.target.files?.[0]); event.target.value = '' }} /></label><p className="admin-file-help">JPG, PNG, WebP or GIF · Up to 10 MB</p>
+        </div>
+        <div className="admin-event-music">
+          <div className="admin-event-music-head"><strong>Event music</strong><span>Plays when visitors open this event. Different track for every event.</span></div>
+          <label className={`admin-upload ${!uploadsAvailable ? 'is-disabled' : ''}`}><UploadSimple size={17} />{musicUploading ? `Uploading ${musicProgress}%` : draft.musicUrl ? 'Replace event music' : 'Upload event music'}<input aria-label="Event music" type="file" accept="audio/mpeg,audio/wav,audio/x-wav,audio/ogg,audio/mp4,audio/aac,audio/*" disabled={!uploadsAvailable || busy} onChange={event => { void music(event.target.files?.[0]); event.target.value = '' }} /></label>
+          {draft.musicUrl && <div className="admin-event-music-track"><span>{draft.musicName || 'Event music track'}</span><button type="button" disabled={busy} onClick={() => { change('musicId', null); change('musicUrl', null); change('musicName', null) }} aria-label="Remove event music">Remove</button></div>}
+          <p className="admin-file-help">MP3, WAV, OGG, M4A or AAC · Up to 30 MB · Optional</p>
         </div><div className="admin-event-details">
         <label className="admin-field">Event name<input ref={nameInput} value={draft.name} required maxLength={160} onChange={event => change('name',event.target.value)} placeholder="Event or artist name" /></label>
         <label className="admin-field">Artist{draft.type === 'concert' && ' (optional)'}<input value={draft.artist} required={draft.type === 'tour'} maxLength={160} onChange={event => change('artist', event.target.value)} placeholder="Artist performing at every show" /></label>

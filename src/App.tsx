@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpRight, Pause, Play } from '@phosphor-icons/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -23,10 +23,13 @@ const wayBlocks = [
 ]
 
 function App() {
-  const settings = useSiteSettings()
+  const { settings } = useSiteSettings()
   const filmEnabled = settings.effectsEnabled && settings.heroVideoEnabled
-  const filmSource = settings.hero?.url || '/media/hero-video.mp4'
-  const photoSource = (file: string) => `${settings.galleryBaseUrl || '/media'}/${encodeURIComponent(file)}`
+  // Start the film on the first render. Cached settings (and the early preload in index.html) make
+  // repeat visits instant; a first visit uses the bundled film until the published one is buffered.
+  const wantedFilm = settings.hero?.url || '/media/hero-video.mp4'
+  const [filmSource, setFilmSource] = useState(wantedFilm)
+  const warmup = useRef<HTMLVideoElement | null>(null)
   const root = useRef<HTMLDivElement>(null)
   const video = useRef<HTMLVideoElement>(null)
   const [videoPlaying, setVideoPlaying] = useState(false)
@@ -50,10 +53,57 @@ function App() {
     return () => { media.revert(); context.revert() }
   }, [])
 
+  const playFilm = useCallback(() => {
+    const player = video.current
+    if (!player || !filmEnabled || videoPaused.current || player.paused === false) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    void player.play().catch(() => setVideoPlaying(false))
+  }, [filmEnabled])
+
+  const filmSourceRef = useRef(filmSource)
+  filmSourceRef.current = filmSource
+
+  useEffect(() => {
+    if (!filmEnabled || wantedFilm === filmSourceRef.current) return
+    const previous = warmup.current
+    if (previous) { previous.pause(); previous.removeAttribute('src'); previous.load() }
+    // Buffer the newly published film off-screen first, so the visible film never freezes on a
+    // half-loaded video (the "stuck photo" effect).
+    const candidate = document.createElement('video')
+    candidate.muted = true; candidate.playsInline = true; candidate.preload = 'auto'
+    candidate.setAttribute('aria-hidden', 'true'); candidate.tabIndex = -1
+    candidate.style.cssText = 'position:fixed;left:-1px;top:0;width:1px;height:1px;opacity:0;pointer-events:none'
+    candidate.src = wantedFilm
+    let swapped = false
+    const swap = () => {
+      if (swapped) return
+      swapped = true
+      setFilmSource(wantedFilm)
+    }
+    candidate.addEventListener('loadeddata', swap)
+    candidate.addEventListener('canplay', swap)
+    candidate.load()
+    document.documentElement.appendChild(candidate)
+    warmup.current = candidate
+    return () => {
+      candidate.removeEventListener('loadeddata', swap)
+      candidate.removeEventListener('canplay', swap)
+      if (!swapped && warmup.current === candidate) {
+        candidate.pause(); candidate.removeAttribute('src'); candidate.load(); candidate.remove(); warmup.current = null
+      }
+    }
+  }, [wantedFilm, filmEnabled])
+
+  useEffect(() => () => {
+    const player = warmup.current
+    if (player) { player.pause(); player.removeAttribute('src'); player.load(); player.remove(); warmup.current = null }
+  }, [])
+
   useEffect(() => {
     const player = video.current
     if (!player) return
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    // These must be set before playback starts; the muted attribute alone can be lost on first mount.
     player.defaultMuted = true
     player.muted = true
     player.playsInline = true
@@ -73,14 +123,14 @@ function App() {
     }
     const resume = () => { if (!document.hidden) start() }
     updateMotion()
-    player.addEventListener('canplay', start)
+    for (const event of ['loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough'] as const) player.addEventListener(event, start)
     document.addEventListener('click', interact)
     document.addEventListener('touchend', interact, { passive: true })
     document.addEventListener('keydown', interact)
     document.addEventListener('visibilitychange', resume)
     motion.addEventListener('change', updateMotion)
     return () => {
-      player.removeEventListener('canplay', start)
+      for (const event of ['loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough'] as const) player.removeEventListener(event, start)
       document.removeEventListener('click', interact)
       document.removeEventListener('touchend', interact)
       document.removeEventListener('keydown', interact)
@@ -94,31 +144,36 @@ function App() {
     <div className="site" ref={root}>
       <a className="skip-link" href="#main">Skip to content</a>
       <header className="site-header">
+        <a className="site-brand" href="#home" aria-label="TRN Events Nepal, back to top"><img src="/logo.png" alt="TRN Events Nepal logo" width="40" height="40" /></a>
         <nav aria-label="Main navigation"><a href="#upcoming">Events</a><a href="#projects">Gallery</a><a href="#about">About</a></nav>
       </header>
       <main id="main">
         <section className="hero" id="home" aria-labelledby="hero-title">
-          <div className="hero-media">{filmEnabled ? <video ref={video} src={filmSource} poster={photoSource('hero-poster.jpg')} autoPlay={!reducedMotion} muted loop playsInline preload="auto" onPlay={() => setVideoPlaying(true)} onPause={() => setVideoPlaying(false)} aria-label="TRN concert footage" /> : <img src={photoSource('hero-poster.jpg')} alt="TRN concert crowd under stage lights" />}</div>
+          <div className="hero-media">{filmEnabled && filmSource ? <video ref={video} src={filmSource} poster="/media/hero-poster.jpg" autoPlay={!reducedMotion} muted loop playsInline preload="auto" onLoadedData={playFilm} onCanPlay={playFilm} onPlay={() => { setVideoPlaying(true); window.__trnHeroPreload?.remove(); window.__trnHeroPreload = undefined; const w = warmup.current; if (w) { w.pause(); w.removeAttribute('src'); w.load(); w.remove(); warmup.current = null } }} onPause={() => setVideoPlaying(false)} aria-label="TRN concert footage" /> : <img src="/media/hero-poster.jpg" alt="TRN concert crowd under stage lights" />}</div>
           <div className="hero-shade" />
           <h1 className="hero-title" id="hero-title"><span>TRN EVENTS</span><span>NEPAL</span></h1>
           <div className="hero-copy"><p>Live music. Shared nights.<br />We bring the stage, the sound<br className="desktop-break" /> and the people together.</p><a className="button" href="#upcoming">Explore events <ArrowDown size={20} aria-hidden="true" /></a></div>
           {filmEnabled && <button className="video-control" onClick={() => {
             if (!video.current) return
-            videoPaused.current = !video.current.paused
-            if (video.current.paused) void video.current.play().catch(() => setVideoPlaying(false))
-            else video.current.pause()
+            if (video.current.paused) {
+              videoPaused.current = false
+              playFilm()
+            } else {
+              videoPaused.current = true
+              video.current.pause()
+            }
           }} aria-label={videoPlaying ? 'Pause background video' : 'Play background video'} aria-pressed={videoPlaying}>
             {videoPlaying ? <Pause size={17} weight="fill" aria-hidden="true" /> : <Play size={17} weight="fill" aria-hidden="true" />}<span>{videoPlaying ? 'Pause film' : 'Play film'}</span>
           </button>}
         </section>
-        <UpcomingEvents />
-        <PastEvents />
+        <UpcomingEvents musicVolume={settings.audioVolume} />
+        <PastEvents musicVolume={settings.audioVolume} />
         <Gallery />
         <section className="way section-pad" id="about" aria-labelledby="way-title">
           <div className="way-intro" data-reveal>
             <div>
               <p className="way-label">What we do</p>
-              <h2 className="way-title" id="way-title">We bring<br /><span className="way-stroke">live music</span> to life.</h2>
+              <h2 className="way-title" id="way-title">We bring <br /><span className="way-stroke">live music</span> to life.</h2>
             </div>
             <p className="way-desc">Bringing artists and audiences together through unforgettable live concerts, incredible performances and nights worth remembering.</p>
           </div>
@@ -138,7 +193,7 @@ function App() {
       <footer className="footer" id="contact">
         <div className="footer-cta" data-reveal>
           <div className="footer-cta-copy">
-            <h2 className="footer-cta-heading"><a className="footer-cta-link" href="mailto:trneventsnepal3@gmail.com">Let's make your<br />next event <span className="footer-stroke">unforgettable.</span></a></h2>
+            <h2 className="footer-cta-heading"><a className="footer-cta-link" href="mailto:trneventsnepal3@gmail.com">Let's make your <br />next event <span className="footer-stroke">unforgettable.</span></a></h2>
           </div>
           <a className="footer-cta-button" href="mailto:trneventsnepal3@gmail.com"><span>Plan your event</span><ArrowUpRight size={20} aria-hidden="true" /></a>
         </div>

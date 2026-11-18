@@ -113,6 +113,14 @@
 @media(max-width:650px) { .admin-gallery-heading { align-items: start; } .admin-gallery-heading p { font-size: 13px; } .admin-gallery-editor { grid-template-columns: 1fr; gap: 18px; } .admin-gallery-current img { height: 180px; } .admin-gallery-heading .admin-upload { padding-inline: 8px; } .admin-gallery-actions { gap: 12px; } }
 /* The event list and editor share the 1100px content edges. */
 .admin-event-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; align-items: start; }
+.admin-event-music { margin-top: 14px; padding: 14px; border: 1px solid #333; border-radius: 4px; background: #101010; display: grid; gap: 10px; justify-items: start; }
+.admin-event-music-head { display: grid; gap: 3px; }
+.admin-event-music-head strong { font-size: 13px; font-weight: 550; }
+.admin-event-music-head span { font-size: 12px; color: var(--admin-muted); }
+.admin-event-music-track { display: flex; align-items: center; gap: 12px; max-width: 100%; font-size: 13px; }
+.admin-event-music-track span { min-width: 0; overflow-wrap: anywhere; color: #d5d5d5; }
+.admin-event-music-track button { flex-shrink: 0; border: 1px solid #555; border-radius: 4px; padding: 5px 10px; font-size: 12px; cursor: pointer; }
+.admin-event-music-track button:hover { border-color: #888; }
 .admin-event-list { padding-block: 18px; }
 .admin-event-list-heading,.admin-event-editor-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 20px; }
 .admin-event-editor-heading > span { font-size: 12px; color: #a3a3a3; }

@@ -44,7 +44,9 @@ svg { flex-shrink: 0; }
 .button { display: inline-flex; align-items: center; justify-content: space-between; gap: 30px; min-height: 52px; padding: 15px 22px; color: var(--white); background: var(--accent); font-size: var(--size-body); font-weight: 500; border-radius: 0; }
 .button svg, .text-button svg { transition: transform 220ms var(--ease); }
 .text-button { display: inline-flex; gap: 24px; align-items: center; min-height: 48px; padding: 0; font-size: var(--size-body); }
-.site-header { position: absolute; z-index: 5; top: 0; left: 0; right: 0; display: flex; justify-content: flex-end; align-items: center; padding: 18px var(--gutter); color: var(--white); }
+.site-header { position: absolute; z-index: 5; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 18px var(--gutter); color: var(--white); }
+.site-brand { display: flex; align-items: center; }
+.site-brand img { width: 56px; height: 56px; object-fit: contain; }
 .site-header nav { display: flex; gap: 34px; }
 .site-header nav a { display: flex; min-height: 44px; align-items: center; font-size: var(--size-body); }
 .hero { position: relative; isolation: isolate; height: min(920px, 100svh); min-height: 720px; overflow: hidden; background: var(--ink); color: var(--white); }
@@ -52,11 +54,10 @@ svg { flex-shrink: 0; }
 .hero-media video { width: 100%; height: 100%; object-fit: cover; object-position: center 45%; }
 .hero-shade { background: rgb(0 0 0 / 44%); }
 .hero-media > img { height: 100%; object-fit: cover; object-position: center 45%; }
-.promo-dialog { padding: 0; border: 0; background: #111; color: #fff; max-width: min(640px,90vw); max-height: 85svh; overflow: auto; }
-.promo-dialog::backdrop { background: rgb(0 0 0 / 85%); }
+.promo-dialog { padding: 0; border: 0; background: #111; color: #fff; max-width: min(640px,90vw); max-height: 85svh; overflow: auto; border-radius: 16px; box-shadow: 0 30px 80px rgb(0 0 0 / 55%); }
+.promo-dialog::backdrop { background: rgb(0 0 0 / 75%); backdrop-filter: blur(3px); }
 .promo-dialog img { width: 100%; max-height: 85svh; object-fit: contain; }
-.promo-close { position: absolute; top: 10px; right: 10px; z-index: 1; padding: 10px; background: #111; color: white; display: flex; }
-.music-control { position: fixed; bottom: 20px; right: 20px; z-index: 8; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #f4f4f4; color: #171817; font-size: 13px; }
+.promo-close { position: absolute; top: 10px; right: 10px; z-index: 1; padding: 10px; background: rgb(10 10 10 / 55%); color: white; display: flex; border-radius: 10px; backdrop-filter: blur(6px); }
 .hero-title { position: absolute; inset: 115px var(--gutter) 24px; display: flex; flex-direction: row; align-items: flex-start; gap: clamp(12px, 3vw, 48px); font-size: clamp(48px, 11vw, 150px); line-height: .9; letter-spacing: -.035em; transform-origin: center; }
 .hero-title span { display: block; }
 .hero-copy { position: absolute; top: 47%; left: var(--gutter); }
@@ -93,6 +94,8 @@ svg { flex-shrink: 0; }
 .way-num { font-family: var(--display); font-size: 24px; line-height: 1.1; color: var(--accent); flex-shrink: 0; }
 .way-caption-copy h3 { font-size: 24px; text-transform: uppercase; letter-spacing: .02em; }
 .way-caption-copy p { margin-top: 6px; font-size: 15px; line-height: 1.55; color: rgb(244 244 244 / 60%); max-width: 34ch; }
+.way-block:nth-child(3) .way-photo img { object-position: center 72%; }
+@media (min-width: 1280px) { .way-grid { max-width: 1160px; margin-inline: auto; } }
 .footer { --footer-soft: rgb(244 244 244 / 60%); --footer-line: rgb(255 255 255 / 14%); padding-inline: var(--gutter); padding-top: 84px; background: #0b0c0b; color: #f4f4f4; overflow: hidden; }
 .footer a { text-decoration: none; }
 .footer-cta { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 28px 40px; padding-bottom: 56px; }
@@ -164,6 +167,7 @@ dialog::backdrop { background: rgb(0 0 0 / 85%); }
 @media (max-width: 600px) {
   :root { --gutter: 20px; --size-body: 16px; --size-small: 14px; --size-heading: 34px; --size-lead: 24px; }
   .site-header { padding-top: 18px; grid-template-columns: auto 1fr; gap: 18px; }
+  .site-brand img { width: 44px; height: 44px; }
   .site-header nav { gap: 20px; justify-content: end; }
   .site-header nav a { font-size: var(--size-small); }
   .hero { min-height: 660px; height: 92svh; max-height: 820px; }

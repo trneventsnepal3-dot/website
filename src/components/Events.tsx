@@ -3,13 +3,37 @@ import { eventDateLabel, eventVenueLabel, formatEventDate, useEvents, usePastEve
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, X } from '@phosphor-icons/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { setEventMusicActive } from '../siteMusic'
 
-export default function UpcomingEvents() {
+function useEventMusic(active: { id: string; musicUrl: string | null } | undefined, volume: number) {
+  const audio = useRef<HTMLAudioElement | null>(null)
+  useEffect(() => {
+    if (!active?.musicUrl) return
+    const player = new Audio(active.musicUrl)
+    player.loop = true
+    player.volume = volume
+    audio.current = player
+    setEventMusicActive(true)
+    window.dispatchEvent(new Event('trn-site-music-pause'))
+    void player.play().catch(() => {})
+    return () => {
+      setEventMusicActive(false)
+      window.dispatchEvent(new Event('trn-site-music-start'))
+      player.pause()
+      player.src = ''
+      audio.current = null
+    }
+  }, [active?.id, active?.musicUrl])
+  useEffect(() => { if (audio.current) audio.current.volume = volume }, [volume])
+}
+
+export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
   const events = useEvents()
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const active = events?.find(event => event.id === selected)
+  useEventMusic(active, musicVolume)
   const close = () => { setSelected(null); trigger.current?.focus({ preventScroll: true }) }
   useEffect(() => { ScrollTrigger.refresh() }, [events])
   useEffect(() => {
@@ -64,12 +88,13 @@ export default function UpcomingEvents() {
   </>
 }
 
-export function PastEvents() {
+export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
   const events = usePastEvents()
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const active = events?.find(event => event.id === selected)
+  useEventMusic(active, musicVolume)
   const close = () => { setSelected(null); trigger.current?.focus({ preventScroll: true }) }
   useEffect(() => { ScrollTrigger.refresh() }, [events])
   useEffect(() => {

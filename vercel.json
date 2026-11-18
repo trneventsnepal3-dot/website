@@ -4,5 +4,15 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/router?__trn_path=:path*" },
     { "source": "/admin", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/media/hero-video.mp4",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/media/hero-poster.jpg",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
   ]
 }

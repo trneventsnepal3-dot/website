@@ -5,6 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#171717" />
     <meta name="description" content="TRN Events Nepal brings the stage, the sound and the people together. Explore live events, concert moments and plan your next event with our team." />
+    <script>
+      // Start the hero film, soundtrack and settings request while the app bundle is still downloading.
+      (function () {
+        var cached = null
+        var admin = window.location.pathname.replace(/\/$/, '') === '/admin'
+        try { cached = JSON.parse(localStorage.getItem('trn-site-settings-v1') || 'null') } catch (error) { cached = null }
+        window.__trnSettings = admin ? Promise.resolve(null) : fetch('/api/site-settings', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          .then(function (response) { return response.ok ? response.json() : null })
+          .catch(function () { return null })
+        if (admin || (cached && cached.effectsEnabled === false)) return
+        // The bundled film is the default, so start it even on a first visit with no cached settings.
+        var hero = cached && cached.heroVideoEnabled === false ? null : (cached && cached.hero) || { url: '/media/hero-video.mp4' }
+        if (hero && hero.url) {
+          if (!/^\/media\//.test(hero.url)) {
+            try {
+              var origin = new URL(hero.url).origin
+              var connection = document.createElement('link')
+              connection.rel = 'preconnect'; connection.href = origin; connection.crossOrigin = ''
+              document.head.appendChild(connection)
+            } catch (error) { /* keep the video URL as-is */ }
+          }
+          var preload = document.createElement('video')
+          preload.muted = true; preload.playsInline = true; preload.preload = 'auto'
+          preload.setAttribute('aria-hidden', 'true'); preload.tabIndex = -1
+          preload.style.cssText = 'position:fixed;left:-1px;top:0;width:1px;height:1px;opacity:0;pointer-events:none'
+          preload.src = hero.url
+          document.documentElement.appendChild(preload)
+          window.__trnHeroPreload = preload
+        }
+        var song = !cached || cached.audioEnabled === false ? null : cached.audio
+        if (song && song.url) {
+          try {
+            var track = new Audio()
+            track.preload = 'auto'; track.src = song.url
+            window.__trnSongPreload = track
+          } catch (error) { /* the soundtrack simply starts when the player mounts */ }
+        }
+      })()
+    </script>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>TRN Events Nepal | Live music. Shared nights.</title>

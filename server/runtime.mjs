@@ -56,7 +56,11 @@ export function createHandler({ env = process.env, query, storage = createStorag
     try {
       const path = new URL(req.url, 'http://localhost').pathname.replace(/\/$/, '');
       const method = req.method;
-      if (path === '/api/site-settings' && method === 'GET') return send(200, await settings());
+      if (path === '/api/site-settings' && method === 'GET') {
+        // Public, non-personal data: let the CDN answer repeat visits so the film and soundtrack can start instantly.
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');
+        return send(200, await settings());
+      }
       if (path === '/api/events' && method === 'GET') return send(200, await events.list());
       if (path === '/api/past-events' && method === 'GET') return send(200, await events.list(false, true));
       if (path === '/api/gallery' && method === 'GET') return send(200, await gallery.list());
