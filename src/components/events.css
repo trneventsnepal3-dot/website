@@ -122,6 +122,7 @@
 
 .past-dialog-stops { margin-top: 28px; padding-top: 24px; border-top: 1px solid rgb(255 255 255 / 12%); }
 .past-dialog-stops h3 { font-size: 22px; letter-spacing: .02em; }
+.past-dialog-stops .tour-map + h3 { margin-top: 28px; }
 .past-dialog-stops ol { padding: 0; margin: 18px 0 0; list-style: none; display: grid; gap: 14px; }
 .past-dialog-stops time { font-weight: 600; font-size: 15px; }
 .past-dialog-stops li { padding: 10px; margin: 0 -10px; border-radius: 10px; transition: background 300ms var(--ease), box-shadow 300ms var(--ease); }

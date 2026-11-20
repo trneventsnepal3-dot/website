@@ -120,7 +120,7 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
             {active.organizer && <div><dt>{active.organizerType === 'tour' ? 'Tour by' : 'Org by'}</dt><dd>{active.organizer}</dd></div>}
           </dl>
           {active.organizerMessage && active.description && <div className="past-dialog-note"><h3>A note from the organiser</h3><p>{active.organizerMessage}</p></div>}
-          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><TourMap stops={active.stops} nextIndex={nextIndex} onPick={pickStop} /><ol>{active.stops.map((stop,index) => {
+          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="tour-dates-title"><TourMap stops={active.stops} nextIndex={nextIndex} onPick={pickStop} /><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => {
             const stopTime = stop.dateTba ? '' : formatEventTime(stop.startTime)
             return <li key={`${stop.date}-${index}`} id={`upcoming-${active.id}-stop-${index}`} className={highlightIndex === index ? 'is-highlighted' : undefined}>
               <div className="past-dialog-stop-head"><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time>{stopTime && <span className="past-dialog-stop-time">{stopTime}</span>}</div>
@@ -228,8 +228,8 @@ export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
           </dl>
           <EventRecap event={active} onNavigate={close} />
           {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="past-tour-title">
-            <h3 id="past-tour-title">Tour dates</h3>
             <TourMap stops={active.stops} onPick={pickStop} />
+            <h3 id="past-tour-title">Tour dates</h3>
             <ol>{active.stops.map((stop, index) => <li key={`${stop.date}-${index}`} id={`past-${active.id}-stop-${index}`} className={highlightIndex === index ? 'is-highlighted' : undefined}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol>
           </section>}
         </div>
