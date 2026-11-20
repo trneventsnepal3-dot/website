@@ -140,6 +140,7 @@
 }
 
 @media (max-width: 700px) {
+  body.trn-next-show-visible .footer { padding-bottom: 120px; }
   .next-show-bar { width: calc(100% - 20px); bottom: 12px; gap: 8px; max-width: 100vw; }
   .next-show-bar-main {
     display: grid;
