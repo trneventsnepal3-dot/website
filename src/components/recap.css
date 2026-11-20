@@ -1,8 +1,8 @@
 /* Past-event recap: aftermovie plus linked gallery photos. */
-.event-recap { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgb(255 255 255 / 12%); }
+.event-recap { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgb(255 255 255 / 12%); }
 .event-recap-title { font-size: 22px; letter-spacing: .02em; }
 
-.recap-video { position: relative; width: min(100%, 640px); margin: 14px auto 0; overflow: hidden; border-radius: 12px; background: #000; }
+.recap-video { position: relative; width: min(100%, 520px); margin: 10px auto 0; overflow: hidden; border-radius: 12px; background: #000; }
 .recap-video-poster { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; }
 .recap-video-poster img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center center; opacity: .68; }
 .recap-video-play {
@@ -34,7 +34,7 @@
 .recap-video-frame { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000; }
 .recap-video-link { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 14px 16px; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #fff; background: #141514; }
 
-.recap-album { margin-top: 18px; }
+.recap-album { margin-top: 14px; }
 .recap-album-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .recap-album-head span:first-child { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: rgb(244 244 244 / 66%); }
 .recap-album-head span:last-child { font-size: 11px; color: rgb(244 244 244 / 42%); }
@@ -84,8 +84,8 @@
 .recap-album-link:hover svg { transform: translate(2px, -2px); }
 
 @media (max-width: 600px) {
-  .event-recap { margin-top: 18px; padding-top: 16px; }
+  .event-recap { margin-top: 16px; padding-top: 14px; }
   .recap-album-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-right: 0; }
   .recap-album-more { display: none; }
-  .recap-video { border-radius: 10px; }
+  .recap-video { width: 92%; margin-top: 8px; border-radius: 10px; }
 }
