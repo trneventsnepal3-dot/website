@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, ArrowUpRight, X } from '@phosphor-icons/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { useAlbums } from '../gallery'
+import { OPEN_ALBUM_EVENT, useAlbums } from '../gallery'
 import './gallery.css'
 
 export default function Gallery() {
@@ -14,6 +14,7 @@ export default function Gallery() {
   const [selected, setSelected] = useState<string | null>(null)
   const [index, setIndex] = useState(0)
   const [fullscreen, setFullscreen] = useState<string | null>(null)
+  const pendingAlbum = useRef<string | null>(null)
   const album = albums?.find(item => item.id === selected)
   const photos = album?.photos || []
   const fullIndex = photos.findIndex(photo => photo.id === fullscreen)
@@ -26,6 +27,25 @@ export default function Gallery() {
   }
   const moveFull = (step: number) => { if (photos.length) setFullscreen(photos[(fullIndex + step + photos.length) % photos.length].id) }
   useEffect(() => { ScrollTrigger.refresh() }, [albums])
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: string }>).detail?.id
+      if (!id) return
+      pendingAlbum.current = id
+      document.getElementById('projects')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+      if (albums?.some(item => item.id === id)) { pendingAlbum.current = null; setFullscreen(null); setSelected(id) }
+    }
+    window.addEventListener(OPEN_ALBUM_EVENT, handler)
+    return () => window.removeEventListener(OPEN_ALBUM_EVENT, handler)
+  }, [albums])
+  useEffect(() => {
+    if (!pendingAlbum.current || !albums) return
+    if (!albums.some(item => item.id === pendingAlbum.current)) return
+    const id = pendingAlbum.current
+    pendingAlbum.current = null
+    setFullscreen(null)
+    setSelected(id)
+  }, [albums])
   useEffect(() => {
     if (album && !albumDialog.current?.open) { albumDialog.current?.showModal(); if (carousel.current) carousel.current.scrollLeft = 0; setIndex(0) }
     if (!album && albumDialog.current?.open) albumDialog.current.close()

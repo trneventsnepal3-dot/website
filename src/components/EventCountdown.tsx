@@ -42,7 +42,7 @@ function subscribeClock(listener: () => void) {
 
 const currentClock = () => clock
 
-function useClock() {
+export function useCountdownClock() {
   return useSyncExternalStore(subscribeClock, currentClock, currentClock)
 }
 
@@ -53,7 +53,7 @@ type Props = {
 }
 
 export default function EventCountdown({ event, stop, compact = false }: Props) {
-  const now = useClock()
+  const now = useCountdownClock()
   const schedule = stop ?? event
   const fallbackTimeZone = stop?.timezone || event.timezone
   const state = countdownState(schedule, now, Boolean(event.isPast), fallbackTimeZone)

@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, ArrowUpRight, Pause, Play } from '@phosphor-icons/r
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import UpcomingEvents, { PastEvents } from './components/Events'
+import NextShow from './components/NextShow'
 import SiteMedia from './components/SiteMedia'
 import Gallery from './components/Gallery'
 import { useSiteSettings } from './settings'
@@ -165,6 +166,7 @@ function App() {
           }} aria-label={videoPlaying ? 'Pause background video' : 'Play background video'} aria-pressed={videoPlaying}>
             {videoPlaying ? <Pause size={17} weight="fill" aria-hidden="true" /> : <Play size={17} weight="fill" aria-hidden="true" />}<span>{videoPlaying ? 'Pause film' : 'Play film'}</span>
           </button>}
+          <NextShow />
         </section>
         <UpcomingEvents musicVolume={settings.audioVolume} />
         <PastEvents musicVolume={settings.audioVolume} />

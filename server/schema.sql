@@ -86,6 +86,9 @@ CREATE TABLE IF NOT EXISTS trn_albums (
  name text NOT NULL, cover_id uuid NOT NULL REFERENCES trn_media(id),
  position bigint GENERATED ALWAYS AS IDENTITY
 );
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS album_id uuid REFERENCES trn_albums(id) ON DELETE SET NULL;
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS recap_url text;
+CREATE INDEX IF NOT EXISTS trn_events_album_idx ON trn_events(album_id);
 ALTER TABLE trn_gallery ADD COLUMN IF NOT EXISTS album_id uuid REFERENCES trn_albums(id) ON DELETE CASCADE;
 CREATE INDEX IF NOT EXISTS trn_gallery_album_idx ON trn_gallery(album_id);
 INSERT INTO trn_albums(id,name,cover_id)

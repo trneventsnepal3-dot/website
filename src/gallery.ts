@@ -2,6 +2,12 @@
 import { api } from './settings'
 export type GalleryPhoto = { id: string; revision: number; mediaId: string; albumId: string | null; url: string; name: string; caption: string; alt: string }
 export type GalleryAlbum = { id: string; revision: number; name: string; coverId: string; coverUrl: string; photos: GalleryPhoto[] }
+export const OPEN_ALBUM_EVENT = 'trn-open-album'
+
+/** Ask the gallery section to open an album, even when launched from an event popup. */
+export function openGalleryAlbum(id: string) {
+  window.dispatchEvent(new CustomEvent(OPEN_ALBUM_EVENT, { detail: { id } }))
+}
 export function useAlbums() {
   const [albums, setAlbums] = useState<GalleryAlbum[] | null>(null)
   useEffect(() => {

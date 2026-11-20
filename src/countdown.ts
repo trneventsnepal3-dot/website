@@ -1,4 +1,4 @@
-import { DEFAULT_TIME_ZONE } from './events'
+import { DEFAULT_TIME_ZONE, type EventStop, type LiveEvent } from './events'
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
@@ -107,6 +107,44 @@ export function countdownState(
   if (now < start) return { status: 'upcoming', start, end, remaining: start - now, timeZone, hasTime }
   if (now <= end) return { status: 'live', start, end, remaining: end - now, timeZone, hasTime }
   return { status: 'ended' }
+}
+
+export type CountdownSlot = { event: LiveEvent; stop?: EventStop; state: CountdownState }
+
+/** Every dated concert or tour stop that is currently upcoming or live. */
+export function activeSlots(events: LiveEvent[], now: number): CountdownSlot[] {
+  const slots: CountdownSlot[] = []
+  for (const event of events) {
+    if (event.type === 'tour') {
+      for (const stop of event.stops) {
+        const state = countdownState(stop, now, Boolean(event.isPast), event.timezone)
+        if (state.status === 'upcoming' || state.status === 'live') slots.push({ event, stop, state })
+      }
+      continue
+    }
+    const state = countdownState(event, now, Boolean(event.isPast), event.timezone)
+    if (state.status === 'upcoming' || state.status === 'live') slots.push({ event, state })
+  }
+  return slots
+}
+
+/** The soonest upcoming show, or the live show that finishes first. */
+export function nextShowSlot(events: LiveEvent[], now: number): CountdownSlot | null {
+  const slots = activeSlots(events, now)
+  const upcoming = slots.filter(slot => slot.state.status === 'upcoming')
+  if (upcoming.length) return upcoming.reduce((first, slot) => (slot.state.start! < first.state.start! ? slot : first))
+  const live = slots.filter(slot => slot.state.status === 'live')
+  if (live.length) return live.reduce((first, slot) => (slot.state.end! > first.state.end! ? slot : first))
+  return null
+}
+
+/** The next show still to come for a tour, used for calendar actions. */
+export function nextStop(event: LiveEvent, now: number): EventStop | undefined {
+  if (event.type !== 'tour') return undefined
+  return event.stops.find(stop => {
+    const state = countdownState(stop, now, Boolean(event.isPast), event.timezone)
+    return state.status === 'upcoming' || state.status === 'live'
+  })
 }
 
 export type CountdownUnit = { label: string; value: number }

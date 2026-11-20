@@ -1,0 +1,91 @@
+/* Past-event recap: aftermovie plus linked gallery photos. */
+.event-recap { margin-top: 28px; padding-top: 24px; border-top: 1px solid rgb(255 255 255 / 12%); }
+.event-recap-title { font-size: 22px; letter-spacing: .02em; }
+
+.recap-video { margin-top: 16px; position: relative; overflow: hidden; border-radius: 12px; background: #000; }
+.recap-video-poster { position: relative; display: block; width: 100%; padding: 0; }
+.recap-video-poster img { width: 100%; max-height: 46dvh; object-fit: cover; opacity: .68; }
+.recap-video-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgb(0 0 0 / 60%);
+}
+.recap-video-play svg {
+  width: 58px;
+  height: 58px;
+  padding: 16px;
+  border: 1px solid rgb(255 255 255 / 55%);
+  border-radius: 50%;
+  background: rgb(10 10 10 / 55%);
+  backdrop-filter: blur(6px);
+  transition: background 240ms var(--ease), transform 240ms var(--ease);
+}
+.recap-video-poster:hover .recap-video-play svg { background: var(--accent); transform: scale(1.04); }
+.recap-video-frame { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000; }
+.recap-video-link { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 14px 16px; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #fff; background: #141514; }
+
+.recap-album { margin-top: 22px; }
+.recap-album-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.recap-album-head span:first-child { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: rgb(244 244 244 / 66%); }
+.recap-album-head span:last-child { font-size: 11px; color: rgb(244 244 244 / 42%); }
+
+.recap-album-photos {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  padding-right: 52px;
+}
+.recap-album-photos img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; background: var(--surface); filter: grayscale(30%); }
+.recap-album-more {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(90deg, transparent, rgb(10 10 10 / 78%));
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.recap-album-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  margin-top: 14px;
+  padding: 9px 15px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgb(244 244 244 / 88%);
+  transition: border-color 220ms var(--ease), background 220ms var(--ease);
+}
+.recap-album-link:hover { border-color: var(--accent); background: rgb(215 25 63 / 14%); color: #fff; }
+.recap-album-link svg { transition: transform 220ms var(--ease); }
+.recap-album-link:hover svg { transform: translate(2px, -2px); }
+
+@media (max-width: 600px) {
+  .event-recap { margin-top: 22px; padding-top: 20px; }
+  .recap-album-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-right: 0; }
+  .recap-album-more { display: none; }
+  .recap-video-poster img { max-height: 38dvh; }
+}

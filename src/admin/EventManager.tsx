@@ -5,9 +5,11 @@ import { DEFAULT_TIME_ZONE, TIME_ZONE_OPTIONS, eventDateLabel, eventLocationLabe
 import { uploadMedia } from '../upload'
 
 type Draft = Omit<LiveEvent, 'id'> & { id: string | null }
-const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [], isPast: false, organizer: '', organizerType: 'org', organizerMessage: '', eventNumber: '', musicId: null, musicUrl: null, musicName: null, startTime: '', endDate: '', endTime: '', timezone: DEFAULT_TIME_ZONE })
+type AlbumOption = { id: string; name: string }
+const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [], isPast: false, organizer: '', organizerType: 'org', organizerMessage: '', eventNumber: '', musicId: null, musicUrl: null, musicName: null, startTime: '', endDate: '', endTime: '', timezone: DEFAULT_TIME_ZONE, albumId: null, albumName: null, album: null, recapUrl: '' })
 export default function EventManager({ uploadsAvailable }: { uploadsAvailable: boolean }) {
   const [events, setEvents] = useState<LiveEvent[]>([])
+  const [albums, setAlbums] = useState<AlbumOption[]>([])
   const [draft, setDraft] = useState<Draft>(empty)
   const [saved, setSaved] = useState(JSON.stringify(empty()))
   const [loading, setLoading] = useState(true)
@@ -30,6 +32,7 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
     catch(e) { setLoadFailed(true); setError((e as Error).message) } finally { setLoading(false) }
   }
   useEffect(() => { void load() }, [])
+  useEffect(() => { void api<AlbumOption[]>('admin/albums').then(value => setAlbums(value.map(({ id, name }) => ({ id, name })))).catch(() => {}) }, [])
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = '' } }
     window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn)
@@ -147,6 +150,11 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
         <label className="admin-field">Organizer by<select value={draft.organizerType || 'org'} onChange={event => change('organizerType', event.target.value as LiveEvent['organizerType'])}><option value="org">Org by</option><option value="tour">Tour by</option></select></label>
         <label className="admin-field">Organizer name<input value={draft.organizer} maxLength={160} onChange={event => change('organizer', event.target.value)} placeholder="Who organized this event" /></label>
         <label className="admin-field">Message to fans<textarea value={draft.organizerMessage} maxLength={2000} rows={3} onChange={event => change('organizerMessage', event.target.value)} placeholder="A short thank-you or note from the organizer to the people who came" /></label>
+        <div className="admin-event-schedule admin-recap-fields">
+          <label className="admin-field">Recap album<select value={draft.albumId || ''} onChange={event => change('albumId', event.target.value || null)}><option value="">No linked album</option>{albums.map(album => <option key={album.id} value={album.id}>{album.name}</option>)}</select></label>
+          <label className="admin-field">Recap video<input type="url" value={draft.recapUrl || ''} maxLength={400} onChange={event => change('recapUrl', event.target.value)} placeholder="https://youtube.com/watch?v=…" /></label>
+        </div>
+        <p className="admin-file-help">Link a gallery album or aftermovie so the past event popup can show photos and the recap video.</p>
         {draft.type === 'concert' ? <>
           <label className="admin-field">Location<input value={draft.location} required maxLength={160} onChange={event => change('location',event.target.value)} placeholder="City, venue or country" /></label>
           {draft.dateTba ? <div className="admin-field">Event date<span className="admin-date-announced">{TBA_LABEL}</span></div> : <label className="admin-field">Event date<input type="date" value={draft.date} required min="1900-01-01" max="2200-12-31" onChange={event => change('date',event.target.value)} /></label>}

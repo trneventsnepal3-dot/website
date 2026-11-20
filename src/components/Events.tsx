@@ -1,6 +1,10 @@
 import './events.css'
 import EventCountdown from './EventCountdown'
+import EventActions from './EventActions'
+import EventRecap from './EventRecap'
+import TourMap from './TourMap'
 import { eventDateLabel, eventVenueLabel, formatEventDate, formatEventTime, useEvents, usePastEvents } from '../events'
+import { nextStop } from '../countdown'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, X } from '@phosphor-icons/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -33,10 +37,31 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [highlightIndex, setHighlightIndex] = useState<number | null>(null)
+  const linked = useRef(false)
+  const highlightTimer = useRef<number | null>(null)
   const active = events?.find(event => event.id === selected)
   useEventMusic(active, musicVolume)
-  const close = () => { setSelected(null); trigger.current?.focus({ preventScroll: true }) }
+  const close = () => {
+    setSelected(null)
+    trigger.current?.focus({ preventScroll: true })
+    if (new URLSearchParams(window.location.search).get('event')) window.history.replaceState({}, '', window.location.pathname)
+  }
   useEffect(() => { ScrollTrigger.refresh() }, [events])
+  useEffect(() => {
+    if (linked.current || !events) return
+    const id = new URLSearchParams(window.location.search).get('event')
+    if (id && events.some(event => event.id === id)) { linked.current = true; setSelected(id) }
+  }, [events])
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: string }>).detail?.id
+      if (id && events?.some(item => item.id === id)) setSelected(id)
+    }
+    window.addEventListener('trn-open-event', handler)
+    return () => window.removeEventListener('trn-open-event', handler)
+  }, [events])
+  useEffect(() => () => { if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current) }, [])
   useEffect(() => {
     if (active && !dialog.current?.open) dialog.current?.showModal()
     if (!active && dialog.current?.open) dialog.current.close()
@@ -47,6 +72,16 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = previous }
   }, [Boolean(active)])
+  const calendarStop = active ? nextStop(active, Date.now()) : undefined
+  const nextIndex = active?.type === 'tour' && calendarStop ? active.stops.indexOf(calendarStop) : undefined
+  const pickStop = (index: number) => {
+    if (!active) return
+    const element = document.getElementById(`upcoming-${active.id}-stop-${index}`)
+    element?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+    setHighlightIndex(index)
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current)
+    highlightTimer.current = window.setTimeout(() => setHighlightIndex(null), 1500)
+  }
   if (!events?.length) return null
   return <>
     <section className="events section-pad" id="upcoming" aria-labelledby="events-title">
@@ -77,6 +112,7 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
             <span className="past-dialog-tag">{active.type === 'tour' ? `${active.stops.length} shows` : active.location}</span>
           </div>
           {active.type === 'concert' && <EventCountdown event={active} />}
+          <EventActions event={active} stop={calendarStop} />
           <dl className="past-dialog-info">
             <div><dt>Date</dt><dd>{eventDateLabel(active)}</dd></div>
             <div><dt>{active.type === 'tour' ? 'Shows' : 'Venue'}</dt><dd>{eventVenueLabel(active)}</dd></div>
@@ -84,9 +120,9 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
             {active.organizer && <div><dt>{active.organizerType === 'tour' ? 'Tour by' : 'Org by'}</dt><dd>{active.organizer}</dd></div>}
           </dl>
           {active.organizerMessage && active.description && <div className="past-dialog-note"><h3>A note from the organiser</h3><p>{active.organizerMessage}</p></div>}
-          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => {
+          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><TourMap stops={active.stops} nextIndex={nextIndex} onPick={pickStop} /><ol>{active.stops.map((stop,index) => {
             const stopTime = stop.dateTba ? '' : formatEventTime(stop.startTime)
-            return <li key={`${stop.date}-${index}`}>
+            return <li key={`${stop.date}-${index}`} id={`upcoming-${active.id}-stop-${index}`} className={highlightIndex === index ? 'is-highlighted' : undefined}>
               <div className="past-dialog-stop-head"><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time>{stopTime && <span className="past-dialog-stop-time">{stopTime}</span>}</div>
               <p>{stop.location}</p>
               <EventCountdown event={active} stop={stop} compact />
@@ -102,10 +138,31 @@ export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [highlightIndex, setHighlightIndex] = useState<number | null>(null)
+  const linked = useRef(false)
+  const highlightTimer = useRef<number | null>(null)
   const active = events?.find(event => event.id === selected)
   useEventMusic(active, musicVolume)
-  const close = () => { setSelected(null); trigger.current?.focus({ preventScroll: true }) }
+  const close = () => {
+    setSelected(null)
+    trigger.current?.focus({ preventScroll: true })
+    if (new URLSearchParams(window.location.search).get('event')) window.history.replaceState({}, '', window.location.pathname)
+  }
   useEffect(() => { ScrollTrigger.refresh() }, [events])
+  useEffect(() => {
+    if (linked.current || !events) return
+    const id = new URLSearchParams(window.location.search).get('event')
+    if (id && events.some(event => event.id === id)) { linked.current = true; setSelected(id) }
+  }, [events])
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: string }>).detail?.id
+      if (id && events?.some(item => item.id === id)) setSelected(id)
+    }
+    window.addEventListener('trn-open-event', handler)
+    return () => window.removeEventListener('trn-open-event', handler)
+  }, [events])
+  useEffect(() => () => { if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current) }, [])
   useEffect(() => {
     if (active && !dialog.current?.open) dialog.current?.showModal()
     if (!active && dialog.current?.open) dialog.current.close()
@@ -116,6 +173,14 @@ export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = previous }
   }, [Boolean(active)])
+  const pickStop = (index: number) => {
+    if (!active) return
+    const element = document.getElementById(`past-${active.id}-stop-${index}`)
+    element?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+    setHighlightIndex(index)
+    if (highlightTimer.current !== null) window.clearTimeout(highlightTimer.current)
+    highlightTimer.current = window.setTimeout(() => setHighlightIndex(null), 1500)
+  }
   if (!events?.length) return null
   return <>
     <section className="events section-pad past-events" id="past-events" aria-labelledby="past-events-title">
@@ -161,9 +226,11 @@ export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
             {active.artist && <div><dt>Artist</dt><dd>{active.artist}</dd></div>}
             {active.organizer && <div><dt>{active.organizerType === 'tour' ? 'Tour by' : 'Org by'}</dt><dd>{active.organizer}</dd></div>}
           </dl>
+          <EventRecap event={active} onNavigate={close} />
           {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="past-tour-title">
             <h3 id="past-tour-title">Tour dates</h3>
-            <ol>{active.stops.map((stop, index) => <li key={`${stop.date}-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol>
+            <TourMap stops={active.stops} onPick={pickStop} />
+            <ol>{active.stops.map((stop, index) => <li key={`${stop.date}-${index}`} id={`past-${active.id}-stop-${index}`} className={highlightIndex === index ? 'is-highlighted' : undefined}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol>
           </section>}
         </div>
       </>}
