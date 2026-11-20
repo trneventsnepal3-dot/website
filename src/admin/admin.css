@@ -179,6 +179,8 @@
 .admin-tour-stop input { min-width: 0; }
 .admin-tour-stop-schedule { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 2px; }
 .admin-tour-stop-schedule .admin-field { margin-top: 0; }
+.admin-stop-aftermovie { grid-column: 1 / -1; margin-top: 2px !important; }
+.admin-stop-aftermovie input { width: 100%; }
 .admin-event-schedule { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #2f2f2f; }
 .admin-event-schedule .admin-field { margin-top: 0; margin-bottom: 14px; }
 .admin-event-schedule + .admin-file-help { margin-top: -4px; }

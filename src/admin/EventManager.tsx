@@ -56,7 +56,7 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
     setDraft(current => ({ ...current, stops: current.stops.map((stop, i) => i === index ? { ...stop, completed: value } : stop) }))
     setNotice('')
   }
-  const changeStop = (index: number, key: 'date' | 'location' | 'startTime' | 'endDate' | 'endTime' | 'timezone', value: string) => change('stops', draft.stops.map((stop, i) => i === index ? { ...stop, [key]: value } : stop))
+  const changeStop = (index: number, key: 'date' | 'location' | 'startTime' | 'endDate' | 'endTime' | 'timezone' | 'aftermovieUrl', value: string) => change('stops', draft.stops.map((stop, i) => i === index ? { ...stop, [key]: value } : stop))
   const changeType = (type: Draft['type']) => {
     setDraft(current => {
       const stops = type === 'tour' && current.stops.length === 0 ? [{ date: current.date, dateTba: current.dateTba, location: current.location, startTime: current.startTime, endDate: current.endDate, endTime: current.endTime, timezone: current.timezone || DEFAULT_TIME_ZONE, completed: false }] : current.stops
@@ -179,6 +179,7 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
               <label className="admin-field">End time<input aria-label={`Show ${index + 1} end time`} type="time" value={stop.endTime || ''} onChange={event => changeStop(index, 'endTime', event.target.value)} /></label>
               <label className="admin-field">Time zone<input aria-label={`Show ${index + 1} time zone`} list="trn-timezones" value={stop.timezone || DEFAULT_TIME_ZONE} maxLength={64} onChange={event => changeStop(index, 'timezone', event.target.value)} placeholder={DEFAULT_TIME_ZONE} /></label>
             </div>
+            <label className="admin-field admin-stop-aftermovie">Aftermovie YouTube URL (optional)<input aria-label={`Show ${index + 1} aftermovie YouTube URL`} type="url" inputMode="url" maxLength={400} value={stop.aftermovieUrl || ''} onChange={event => changeStop(index, 'aftermovieUrl', event.target.value)} placeholder="https://youtube.com/watch?v=…" /></label>
           </fieldset>)}
           <button type="button" className="admin-upload admin-tour-add" disabled={draft.stops.length >= 100} onClick={() => change('stops', [...draft.stops, { date: '', dateTba: draft.dateTba, location: '', startTime: '', endTime: '', timezone: draft.timezone || DEFAULT_TIME_ZONE, completed: false }])}><Plus size={20} aria-hidden="true" />Add show</button>
         </section>}

@@ -54,3 +54,48 @@ test('tours persist shared details and ordered stops, validate schedules, and co
     assert.equal((await events.list(true)).some(e => e.id === tour.id), false);
   } finally { await database.close(); }
 });
+
+test('tour stops keep independent optional YouTube aftermovie links', async () => {
+  const database = new PGlite();
+  try {
+    const schema = await readFile(new URL('../server/schema.sql', import.meta.url), 'utf8');
+    await database.exec(schema);
+    const events = createEvents(async (sql, values) => (await database.query(sql, values)).rows);
+    const seed = (await events.list())[0];
+    const sydneyVideo = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    const payload = {
+      revision: 0,
+      type: 'tour',
+      name: 'City Tour',
+      artist: 'Sushant KC',
+      imageId: seed.imageId,
+      published: true,
+      stops: [
+        { date: '2028-07-02', location: 'Sydney, Opera House', aftermovieUrl: sydneyVideo },
+        { date: '2028-07-01', location: 'Melbourne, Forum' },
+      ],
+    };
+    await assert.rejects(events.save({ ...payload, stops: [{ ...payload.stops[0], aftermovieUrl: 'https://vimeo.com/12345' }, payload.stops[1]] }), { status: 400 });
+    await assert.rejects(events.save({ ...payload, stops: [{ ...payload.stops[0], aftermovieUrl: 'https://www.youtube.com/watch?v=short' }, payload.stops[1]] }), { status: 400 });
+    const tour = await events.save(payload);
+    const byLocation = location => tour.stops.find(stop => stop.location.startsWith(location));
+    assert.equal(byLocation('Sydney').aftermovieUrl, sydneyVideo);
+    assert.equal(byLocation('Melbourne').aftermovieUrl, undefined);
+    assert.equal((await events.list(true)).find(event => event.id === tour.id).stops.find(stop => stop.location.startsWith('Sydney')).aftermovieUrl, sydneyVideo);
+
+    const melbourneVideo = 'https://youtu.be/9bZkp7q19f0';
+    const edited = await events.save({ ...payload, revision: tour.revision, stops: [
+      { ...payload.stops[0], aftermovieUrl: '9bZkp7q19f0' },
+      { ...payload.stops[1], aftermovieUrl: melbourneVideo },
+    ] });
+    assert.equal(edited.stops.find(stop => stop.location.startsWith('Sydney')).aftermovieUrl, '9bZkp7q19f0');
+    assert.equal(edited.stops.find(stop => stop.location.startsWith('Melbourne')).aftermovieUrl, melbourneVideo);
+
+    const removed = await events.save({ ...payload, revision: edited.revision, stops: [
+      { ...payload.stops[0], aftermovieUrl: '' },
+      { ...payload.stops[1] },
+    ] });
+    assert.equal(removed.stops.find(stop => stop.location.startsWith('Sydney')).aftermovieUrl, undefined);
+    assert.equal(removed.stops.find(stop => stop.location.startsWith('Melbourne')).aftermovieUrl, undefined);
+  } finally { await database.close(); }
+});

@@ -2,6 +2,7 @@ import './events.css'
 import EventCountdown from './EventCountdown'
 import EventActions from './EventActions'
 import EventRecap from './EventRecap'
+import StopAftermovie from './StopAftermovie'
 import TourMap from './TourMap'
 import { eventDateLabel, eventVenueLabel, formatEventDate, formatEventTime, useEvents, usePastEvents } from '../events'
 import { nextStop } from '../countdown'
@@ -115,6 +116,7 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
               <div className="past-dialog-stop-head"><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time>{stopTime && <span className="past-dialog-stop-time">{stopTime}</span>}</div>
               <p>{stop.location}</p>
               <EventCountdown event={active} stop={stop} compact />
+              <StopAftermovie url={stop.aftermovieUrl} title={stop.location} variant="list" />
             </li>
           })}</ol></section>}
         </div></>}
@@ -208,7 +210,7 @@ export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
           {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="past-tour-title">
             <TourMap stops={active.stops} />
             <h3 id="past-tour-title">Tour dates</h3>
-            <ol>{active.stops.map((stop, index) => <li key={`${stop.date}-${index}`} id={`past-${active.id}-stop-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol>
+            <ol>{active.stops.map((stop, index) => <li key={`${stop.date}-${index}`} id={`past-${active.id}-stop-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p><StopAftermovie url={stop.aftermovieUrl} title={stop.location} variant="list" /></li>)}</ol>
           </section>}
         </div>
       </>}

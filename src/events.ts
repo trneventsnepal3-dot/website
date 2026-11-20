@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from './settings'
-export type EventStop = { date: string; dateTba: boolean; location: string; startTime?: string; endDate?: string; endTime?: string; timezone?: string; completed?: boolean }
+export type EventStop = { date: string; dateTba: boolean; location: string; startTime?: string; endDate?: string; endTime?: string; timezone?: string; completed?: boolean; aftermovieUrl?: string }
 export type EventAlbumPhoto = { id: string; url: string; alt: string }
 export type EventAlbum = { id: string; name: string; count: number; photos: EventAlbumPhoto[] }
 export type LiveEvent = { id: string; revision: number; name: string; location: string; date: string; dateTba: boolean; imageId: string; imageUrl: string; published: boolean; type: 'concert' | 'tour'; artist: string; description: string; stops: EventStop[]; isPast: boolean; organizer: string; organizerType: 'org' | 'tour'; organizerMessage: string; eventNumber: string; musicId: string | null; musicUrl: string | null; musicName: string | null; startTime?: string; endDate?: string; endTime?: string; timezone?: string; albumId?: string | null; albumName?: string | null; album?: EventAlbum | null; recapUrl?: string }

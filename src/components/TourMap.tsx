@@ -5,6 +5,7 @@ import countriesTopology from 'world-atlas/countries-110m.json'
 import type { FeatureCollection } from 'geojson'
 import { formatEventDate, formatEventTime, type EventStop } from '../events'
 import { countryName, usePlaces, type Place } from '../geocode'
+import StopAftermovie from './StopAftermovie'
 import './tour-map.css'
 
 const FALLBACK_SIZE = { width: 900, height: 480 }
@@ -22,6 +23,7 @@ type Pin = {
   dateTime: string
   time: string
   status: string
+  aftermovieUrl: string
 }
 type Segment = { key: string; d: string; order: number }
 type Journey = { stopIndex: number; segmentIndex: number; progress: number }
@@ -178,6 +180,7 @@ export default function TourMap({ stops, nextIndex }: {
       dateTime: stop.date,
       time: startTime,
       status: stopStatus(stop, index, nextIndex),
+      aftermovieUrl: stop.aftermovieUrl || '',
     }]
   }), [located, map, nextIndex])
 
@@ -262,10 +265,19 @@ export default function TourMap({ stops, nextIndex }: {
     }
     : { scale: 1, x: 0, y: 0 }
 
+  const pauseJourney = () => {
+    window.clearTimeout(interactionTimer.current)
+    setAutoPlaying(false)
+  }
+
+  const resumeJourneyLater = () => {
+    window.clearTimeout(interactionTimer.current)
+    interactionTimer.current = window.setTimeout(() => setAutoPlaying(true), 6500)
+  }
+
   const selectStop = (index: number) => {
     const pinIndex = pins.findIndex(pin => pin.index === index)
     if (pinIndex < 0) return
-    window.clearTimeout(interactionTimer.current)
     const next: Journey = {
       stopIndex: index,
       segmentIndex: pinIndex === 0 ? 0 : Math.min(pinIndex - 1, segmentCount - 1),
@@ -273,8 +285,8 @@ export default function TourMap({ stops, nextIndex }: {
     }
     journeyRef.current = next
     setJourney(next)
-    setAutoPlaying(false)
-    interactionTimer.current = window.setTimeout(() => setAutoPlaying(true), 6500)
+    pauseJourney()
+    resumeJourneyLater()
   }
 
   const travelerPoint: Point | null = !pins.length ? null
@@ -357,6 +369,12 @@ export default function TourMap({ stops, nextIndex }: {
           <time dateTime={selected.dateTime || undefined}>{selected.date}</time>
           {selected.time && <span> · {selected.time}</span>}
         </div>
+        <StopAftermovie
+          url={selected.aftermovieUrl}
+          title={selected.city || `Stop ${selected.index + 1}`}
+          onOpen={pauseJourney}
+          onClose={resumeJourneyLater}
+        />
       </div> : <p className="tour-map-panel-empty">Select a marker to explore each stop.</p>}
     </div>
   </figure>

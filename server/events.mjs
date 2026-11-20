@@ -7,7 +7,21 @@ const clock = z.preprocess(clean, z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 
 const validTimeZone = value => { try { new Intl.DateTimeFormat('en-US', { timeZone: value }); return true; } catch { return false; } };
 const optionalTimeZone = z.string().trim().max(64).refine(validTimeZone, 'Choose a valid time zone.');
 const recapUrl = z.preprocess(clean, z.url('Enter a valid recap link.').refine(value => value.startsWith('https://'), 'Use an https:// link.').optional());
-const stop = z.object({ date, dateTba: z.boolean().default(false), location, startTime: clock, endDate: date, endTime: clock, timezone: z.preprocess(clean, optionalTimeZone.optional()), completed: z.boolean().default(false) });
+const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
+const YOUTUBE_HOSTS = new Set(['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtube-nocookie.com']);
+const youtubeVideoId = value => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.replace(/^www\./, '').toLowerCase();
+    if (host === 'youtu.be') return url.pathname.split('/').filter(Boolean)[0] || '';
+    if (YOUTUBE_HOSTS.has(host)) return url.searchParams.get('v') || /^\/(?:embed|shorts|live|v)\/([^/?#]+)/.exec(url.pathname)?.[1] || '';
+  } catch { /* Accept a bare video ID below. */ }
+  return YOUTUBE_ID.test(raw) ? raw : '';
+};
+const aftermovieUrl = z.preprocess(clean, z.string().trim().max(400).refine(value => YOUTUBE_ID.test(youtubeVideoId(value)), 'Enter a valid YouTube link for this show.').optional());
+const stop = z.object({ date, dateTba: z.boolean().default(false), location, startTime: clock, endDate: date, endTime: clock, timezone: z.preprocess(clean, optionalTimeZone.optional()), completed: z.boolean().default(false), aftermovieUrl });
 export const schema = z.object({ revision: z.number().int().nonnegative(), name: z.string().trim().min(1,'Enter an event name.').max(160), location: location.optional(), date: date, dateTba: z.boolean().default(false), imageId: z.uuid('Upload an event photo.'), published: z.boolean(), type: z.enum(['concert','tour']).default('concert'), artist: z.string().trim().max(160).default(''), description: z.string().trim().max(5000).default(''), stops: z.array(stop).max(100).default([]), isPast: z.boolean().default(false), organizer: z.string().trim().max(160).default(''), organizerType: z.enum(['org','tour']).default('org'), organizerMessage: z.string().trim().max(2000).default(''), eventNumber: z.string().trim().max(20).default(''), musicId: z.preprocess(clean, z.uuid('Choose a valid music track.').nullable().default(null)), startTime: clock, endDate: date, endTime: clock, timezone: z.preprocess(clean, optionalTimeZone.default('Asia/Kathmandu')), albumId: z.preprocess(clean, z.uuid('Choose a valid album.').optional()), recapUrl }).superRefine((event,ctx) => {
   const issue = message => ctx.addIssue({ code: 'custom', message });
   if (event.type === 'tour') {
@@ -32,7 +46,8 @@ const persistStop = stop => ({
   ...(stop.endDate ? { endDate: stop.endDate } : {}),
   ...(stop.endTime ? { endTime: stop.endTime } : {}),
   ...(stop.timezone ? { timezone: stop.timezone } : {}),
-  ...(stop.completed ? { completed: true } : {})
+  ...(stop.completed ? { completed: true } : {}),
+  ...(stop.aftermovieUrl ? { aftermovieUrl: stop.aftermovieUrl } : {})
 });
 const normalizeStop = stop => {
   const dateTba = Boolean(stop.dateTba) || !stop.date;
