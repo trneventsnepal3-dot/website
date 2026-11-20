@@ -24,10 +24,30 @@ type Pin = {
   status: string
 }
 type Segment = { key: string; d: string; order: number }
+type Journey = { stopIndex: number; segmentIndex: number; progress: number }
+type Point = { x: number; y: number }
 
 const locationKey = (location: string) => location.trim().replace(/\s+/g, ' ').toLowerCase()
 const normalizeLongitude = (longitude: number) => ((longitude + 180) % 360 + 360) % 360 - 180
 const titleCase = (value: string) => value.trim().toLowerCase().replace(/\b\w/g, character => character.toUpperCase())
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+const easeInOut = (value: number) => value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2
+
+function curvePoint(from: Pin, to: Pin, progress: number): Point {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const distance = Math.hypot(dx, dy) || 1
+  const bend = Math.min(42, distance * 0.16)
+  const control = {
+    x: (from.x + to.x) / 2 - (dy / distance) * bend,
+    y: (from.y + to.y) / 2 + (dx / distance) * bend,
+  }
+  const remaining = 1 - progress
+  return {
+    x: remaining ** 2 * from.x + 2 * remaining * progress * control.x + progress ** 2 * to.x,
+    y: remaining ** 2 * from.y + 2 * remaining * progress * control.y + progress ** 2 * to.y,
+  }
+}
 
 function parseLocation(location: string) {
   const countryCode = /\(([A-Z]{2})\)/i.exec(location)?.[1]?.toUpperCase()
@@ -62,23 +82,20 @@ function curvedRoute(from: Pin, to: Pin): string {
   return `M${from.x},${from.y} Q${controlX},${controlY} ${to.x},${to.y}`
 }
 
-export default function TourMap({ stops, nextIndex, onPick }: {
+export default function TourMap({ stops, nextIndex }: {
   stops: EventStop[]
   nextIndex?: number
-  onPick: (index: number) => void
 }) {
   const { places, loading } = usePlaces(stops.map(stop => stop.location))
   const frame = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState(FALLBACK_SIZE)
-  const [selectedIndex, setSelectedIndex] = useState(nextIndex ?? 0)
-  const [focused, setFocused] = useState(false)
+  const [journey, setJourney] = useState<Journey>({ stopIndex: 0, segmentIndex: 0, progress: 0 })
+  const [autoPlaying, setAutoPlaying] = useState(true)
+  const journeyRef = useRef(journey)
+  const interactionTimer = useRef<number | undefined>(undefined)
   const reducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
 
-  useEffect(() => {
-    if (nextIndex !== undefined) setSelectedIndex(nextIndex)
-  }, [nextIndex])
-
-  useEffect(() => { setFocused(false) }, [stops])
+  useEffect(() => () => window.clearTimeout(interactionTimer.current), [])
 
   useEffect(() => {
     const element = frame.current
@@ -170,16 +187,107 @@ export default function TourMap({ stops, nextIndex, onPick }: {
     return [{ key: `${previous.index}-${pin.index}`, d: curvedRoute(previous, pin), order }]
   }), [pins])
 
+  const segmentCount = Math.max(0, pins.length - 1)
+  const timelineLength = segmentCount + 1
+
+  useEffect(() => {
+    const next = { stopIndex: pins[0]?.index ?? 0, segmentIndex: 0, progress: 0 }
+    journeyRef.current = next
+    setJourney(next)
+    setAutoPlaying(true)
+  }, [timelineLength, pins.map(pin => `${pin.index}:${pin.x}:${pin.y}`).join('|')])
+
+  useEffect(() => {
+    if (!autoPlaying || !segmentCount || reducedMotion) return
+    let frame = 0
+    let previous: number | undefined
+    let timer: number | undefined
+
+    const apply = (next: Journey) => {
+      journeyRef.current = next
+      setJourney(next)
+    }
+
+    const resume = (current: Journey) => {
+      const atFinalStop = current.segmentIndex >= segmentCount - 1
+      const next: Journey = atFinalStop
+        ? { stopIndex: pins[0].index, segmentIndex: 0, progress: 0 }
+        : { stopIndex: pins[current.segmentIndex + 1].index, segmentIndex: current.segmentIndex + 1, progress: 0 }
+      timer = window.setTimeout(() => {
+        apply(next)
+        previous = undefined
+        frame = requestAnimationFrame(tick)
+      }, atFinalStop ? 2200 : 1500)
+    }
+
+    const tick = (time: number) => {
+      if (previous === undefined) previous = time
+      const delta = Math.min(time - previous, 100)
+      previous = time
+      const current = journeyRef.current
+
+      if (current.progress >= 1) {
+        if (!timer) resume(current)
+        return
+      }
+
+      const nextProgress = clamp(current.progress + delta / 2600, 0, 1)
+      apply({ ...current, progress: nextProgress })
+      if (nextProgress < 1) {
+        frame = requestAnimationFrame(tick)
+        return
+      }
+
+      apply({ ...current, stopIndex: pins[current.segmentIndex + 1].index, progress: 1 })
+      resume(current)
+    }
+
+    if (journeyRef.current.progress >= 1) resume(journeyRef.current)
+    else frame = requestAnimationFrame(tick)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [autoPlaying, pins, segmentCount, reducedMotion])
+
   if (!loading && !pins.length) return null
-  const selected = pins.find(pin => pin.index === selectedIndex) || pins[0]
+  const selected = pins.find(pin => pin.index === journey.stopIndex) || pins[0]
   const locatedCount = pins.length
-  const focus = !reducedMotion && focused && selected
+  const focus = !reducedMotion && selected
     ? {
-      scale: 1.03,
-      x: (size.width / 2 - selected.x) * 0.12,
-      y: (size.height / 2 - selected.y) * 0.12,
+      scale: 1.015,
+      x: (size.width / 2 - selected.x) * 0.06,
+      y: (size.height / 2 - selected.y) * 0.06,
     }
     : { scale: 1, x: 0, y: 0 }
+
+  const selectStop = (index: number) => {
+    const pinIndex = pins.findIndex(pin => pin.index === index)
+    if (pinIndex < 0) return
+    window.clearTimeout(interactionTimer.current)
+    const next: Journey = {
+      stopIndex: index,
+      segmentIndex: pinIndex === 0 ? 0 : Math.min(pinIndex - 1, segmentCount - 1),
+      progress: pinIndex === 0 ? 0 : 1,
+    }
+    journeyRef.current = next
+    setJourney(next)
+    setAutoPlaying(false)
+    interactionTimer.current = window.setTimeout(() => setAutoPlaying(true), 6500)
+  }
+
+  const travelerPoint: Point | null = !pins.length ? null
+    : journey.progress >= 1
+      ? (pins.find(pin => pin.index === journey.stopIndex) || pins[Math.min(journey.segmentIndex, pins.length - 1)])
+      : journey.segmentIndex < segmentCount
+        ? curvePoint(pins[journey.segmentIndex], pins[journey.segmentIndex + 1], easeInOut(journey.progress))
+        : pins[pins.length - 1]
+  const revealFor = (order: number) => order < journey.segmentIndex
+    ? 1
+    : order === journey.segmentIndex
+      ? journey.progress
+      : 0
 
   return <figure className="tour-map">
     <figcaption className="tour-map-head">
@@ -194,33 +302,20 @@ export default function TourMap({ stops, nextIndex, onPick }: {
         >
         <path className="tour-map-graticule" d={map.path(map.graticule) || ''} />
         <path className="tour-map-land" d={map.path(map.countries) || ''} />
-        {segments.map(segment => <g className="tour-map-route" key={segment.key}>
-          <path className="tour-map-route-glow" d={segment.d} />
-          <path
-            className="tour-map-route-line"
-            d={segment.d}
-            pathLength={1}
-            style={{ animationDelay: `${segment.order * 220}ms` }}
-          />
-          {!reducedMotion && <>
-            <path
-              className="tour-map-route-flow"
-              d={segment.d}
-              pathLength={1}
-              style={{ animationDelay: `${900 + segment.order * 220}ms` }}
-            />
-            <g className="tour-map-traveler">
-              <animateMotion
-                dur={`${2.8 + segment.order * 0.4}s`}
-                begin={`${1.1 + segment.order * 0.3}s`}
-                repeatCount="indefinite"
-                path={segment.d}
-              />
-              <circle className="tour-map-traveler-glow" r="9" />
-              <circle className="tour-map-traveler-dot" r="3.5" />
-            </g>
-          </>}
-        </g>)}
+        {segments.map(segment => {
+          const reveal = revealFor(segment.order)
+          return <g className="tour-map-route" key={segment.key}>
+            <path className="tour-map-route-base" d={segment.d} />
+            {reveal > 0 && <>
+              <path className="tour-map-route-glow" d={segment.d} pathLength={1} style={{ strokeDasharray: 1, strokeDashoffset: 1 - reveal }} />
+              <path className="tour-map-route-line" d={segment.d} pathLength={1} style={{ strokeDasharray: 1, strokeDashoffset: 1 - reveal }} />
+            </>}
+          </g>
+        })}
+        {travelerPoint && <g className="tour-map-traveler" transform={`translate(${travelerPoint.x} ${travelerPoint.y})`}>
+          <circle className="tour-map-traveler-glow" r="9" />
+          <circle className="tour-map-traveler-dot" r="3.5" />
+        </g>}
         {pins.map(pin => {
           const labelBelow = pin.y < 44
           return <g key={`${pin.index}-${pin.location}`} transform={`translate(${pin.x} ${pin.y})`}>
@@ -229,12 +324,11 @@ export default function TourMap({ stops, nextIndex, onPick }: {
               role="button"
               tabIndex={0}
               aria-label={`Stop ${pin.index + 1}: ${pin.city}${pin.country ? `, ${pin.country}` : ''}, ${pin.date}`}
-              onClick={() => { setSelectedIndex(pin.index); setFocused(true) }}
+              onClick={() => selectStop(pin.index)}
               onKeyDown={event => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault()
-                  setSelectedIndex(pin.index)
-                  setFocused(true)
+                  selectStop(pin.index)
                 }
               }}
               style={{ animationDelay: `${pin.index * 90}ms` }}
@@ -252,7 +346,7 @@ export default function TourMap({ stops, nextIndex, onPick }: {
       {!loading && locatedCount < stops.length && <p className="tour-map-note">{stops.length - locatedCount} {stops.length - locatedCount === 1 ? 'location' : 'locations'} could not be located</p>}
     </div>
     <div className="tour-map-panel" aria-live="polite">
-      {selected ? <>
+      {selected ? <div className="tour-map-panel-body" key={selected.index}>
         <div className="tour-map-panel-top">
           <span className="tour-map-panel-index">Stop {String(selected.index + 1).padStart(2, '0')}</span>
           <span className={`tour-map-status${selected.status === 'Next stop' ? ' is-next' : ''}`}>{selected.status}</span>
@@ -263,10 +357,7 @@ export default function TourMap({ stops, nextIndex, onPick }: {
           <time dateTime={selected.dateTime || undefined}>{selected.date}</time>
           {selected.time && <span> · {selected.time}</span>}
         </div>
-        <button className="tour-map-panel-link" type="button" onClick={() => onPick(selected.index)}>
-          View in schedule <span aria-hidden="true">↗</span>
-        </button>
-      </> : <p className="tour-map-panel-empty">Select a marker to explore each stop.</p>}
+      </div> : <p className="tour-map-panel-empty">Select a marker to explore each stop.</p>}
     </div>
   </figure>
 }

@@ -40,6 +40,13 @@
 }
 
 .tour-map-route { fill: none; pointer-events: none; }
+.tour-map-route-base {
+  fill: none;
+  stroke: rgb(215 25 63 / 22%);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-dasharray: 3 5;
+}
 .tour-map-route-glow {
   fill: none;
   stroke: var(--accent);
@@ -47,29 +54,16 @@
   stroke-linecap: round;
   opacity: .22;
   filter: blur(5px);
+  transition: stroke-dashoffset 90ms linear;
 }
 .tour-map-route-line {
   fill: none;
   stroke: var(--accent);
   stroke-width: 2.2;
   stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
   filter: drop-shadow(0 0 4px rgb(215 25 63 / 65%));
-  animation: tour-route-draw 1.6s cubic-bezier(.22, 1, .36, 1) forwards;
+  transition: stroke-dashoffset 90ms linear;
 }
-.tour-map-route-flow {
-  fill: none;
-  stroke: #ff5c86;
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  stroke-dasharray: .035 .065;
-  opacity: .85;
-  animation: tour-route-flow 1.4s linear infinite;
-}
-
-@keyframes tour-route-draw { to { stroke-dashoffset: 0; } }
-@keyframes tour-route-flow { to { stroke-dashoffset: -1; } }
 
 .tour-map-traveler { filter: drop-shadow(0 0 6px rgb(255 92 134 / 75%)); }
 .tour-map-traveler-glow { fill: rgb(215 25 63 / 24%); }
@@ -167,6 +161,15 @@
   border-radius: 12px;
   background: linear-gradient(180deg, rgb(20 21 20 / 94%), rgb(12 13 12 / 94%));
 }
+.tour-map-panel-body {
+  display: grid;
+  gap: 6px;
+  animation: tour-panel-enter 420ms cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes tour-panel-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .tour-map-panel-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .tour-map-panel-index {
   font-size: 10px;
@@ -193,20 +196,6 @@
 .tour-map-panel-city { font-family: var(--display); font-size: 20px; line-height: 1.1; letter-spacing: .01em; }
 .tour-map-panel-venue { font-size: 13px; color: rgb(244 244 244 / 68%); }
 .tour-map-panel-date { font-size: 12px; color: rgb(244 244 244 / 52%); }
-.tour-map-panel-link {
-  justify-self: start;
-  margin-top: 4px;
-  padding: 8px 12px;
-  border: 1px solid rgb(255 255 255 / 18%);
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: #fff;
-  transition: border-color 220ms var(--ease), color 220ms var(--ease);
-}
-.tour-map-panel-link:hover { border-color: var(--accent); color: #ff7899; }
 .tour-map-panel-empty { font-size: 13px; color: rgb(244 244 244 / 55%); }
 
 @media (max-width: 768px) {
@@ -230,9 +219,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tour-map-route-line { stroke-dashoffset: 0; animation: none; }
-  .tour-map-scene { transition: none; }
-  .tour-map-route-flow,
+  .tour-map-scene,
+  .tour-map-route-glow,
+  .tour-map-route-line { transition: none; }
+  .tour-map-panel-body,
   .tour-map-traveler,
   .tour-map-pin,
   .tour-map-pin-ripple { animation: none; }
