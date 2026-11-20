@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
 
-export type Place = { lat: number; lon: number }
-const CACHE_KEY = 'trn-place-cache-v1'
+export type Place = {
+  lat: number
+  lon: number
+  name?: string
+  country?: string
+  countryCode?: string
+  admin1?: string
+}
+const CACHE_KEY = 'trn-place-cache-v2'
 const CACHE_LIMIT = 400
 const memory = new Map<string, Place>()
 
@@ -12,6 +19,12 @@ const COUNTRY_NAMES: Record<string, string> = {
   AU: 'Australia', NZ: 'New Zealand', NP: 'Nepal', IN: 'India', US: 'United States',
   CA: 'Canada', GB: 'United Kingdom', UK: 'United Kingdom', AE: 'United Arab Emirates',
   SG: 'Singapore', JP: 'Japan', DE: 'Germany', FR: 'France',
+}
+
+export function countryName(code?: string) {
+  if (!code) return ''
+  const key = code.trim().toUpperCase()
+  return COUNTRY_NAMES[key] || key
 }
 
 /** Turn venue strings like "PERTH (AU) - METRO CITY" into usable geocoding queries. */
@@ -64,9 +77,16 @@ async function geocode(location: string): Promise<Place | null> {
     try {
       const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(candidate)}&count=1&language=en&format=json`, { signal: AbortSignal.timeout(7000) })
       if (!response.ok) continue
-      const data = await response.json() as { results?: { latitude: number; longitude: number }[] }
+      const data = await response.json() as { results?: { latitude: number; longitude: number; name?: string; country?: string; country_code?: string; admin1?: string }[] }
       const result = data.results?.[0]
-      if (result && Number.isFinite(result.latitude) && Number.isFinite(result.longitude)) return { lat: result.latitude, lon: result.longitude }
+      if (result && Number.isFinite(result.latitude) && Number.isFinite(result.longitude)) return {
+        lat: result.latitude,
+        lon: result.longitude,
+        name: result.name,
+        country: result.country,
+        countryCode: result.country_code,
+        admin1: result.admin1,
+      }
     } catch {}
   }
   return null

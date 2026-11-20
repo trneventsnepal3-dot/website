@@ -52,15 +52,8 @@ export default function NextShow() {
     setDismissed(slot.event.id)
   }
 
-  const reserveSpace = Boolean(slot && slot.event.id !== dismissed)
-  const showBar = Boolean(visible && reserveSpace)
+  const showBar = Boolean(visible && slot && slot.event.id !== dismissed)
   const meta = slot ? metaLabel(slot.event, slot.stop) : ''
-
-  useEffect(() => {
-    if (!reserveSpace) return
-    document.body.classList.add('trn-next-show-visible')
-    return () => document.body.classList.remove('trn-next-show-visible')
-  }, [reserveSpace])
 
   return <>
     {slot && <button className="hero-next" onClick={open}>
