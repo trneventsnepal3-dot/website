@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Image, Plus, UploadSimple, X } from '@phosphor-icons/react'
 import { api } from '../settings'
-import { eventDateLabel, eventLocationLabel, TBA_LABEL, type LiveEvent } from '../events'
+import { DEFAULT_TIME_ZONE, TIME_ZONE_OPTIONS, eventDateLabel, eventLocationLabel, TBA_LABEL, type LiveEvent } from '../events'
 import { uploadMedia } from '../upload'
 
 type Draft = Omit<LiveEvent, 'id'> & { id: string | null }
-const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [], isPast: false, organizer: '', organizerType: 'org', organizerMessage: '', eventNumber: '', musicId: null, musicUrl: null, musicName: null })
+const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [], isPast: false, organizer: '', organizerType: 'org', organizerMessage: '', eventNumber: '', musicId: null, musicUrl: null, musicName: null, startTime: '', endDate: '', endTime: '', timezone: DEFAULT_TIME_ZONE })
 export default function EventManager({ uploadsAvailable }: { uploadsAvailable: boolean }) {
   const [events, setEvents] = useState<LiveEvent[]>([])
   const [draft, setDraft] = useState<Draft>(empty)
@@ -49,12 +49,16 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
     })
     setNotice('')
   }
-  const changeStop = (index: number, key: 'date' | 'location', value: string) => change('stops', draft.stops.map((stop, i) => i === index ? { ...stop, [key]: value } : stop))
+  const setStopCompleted = (index: number, value: boolean) => {
+    setDraft(current => ({ ...current, stops: current.stops.map((stop, i) => i === index ? { ...stop, completed: value } : stop) }))
+    setNotice('')
+  }
+  const changeStop = (index: number, key: 'date' | 'location' | 'startTime' | 'endDate' | 'endTime' | 'timezone', value: string) => change('stops', draft.stops.map((stop, i) => i === index ? { ...stop, [key]: value } : stop))
   const changeType = (type: Draft['type']) => {
     setDraft(current => {
-      const stops = type === 'tour' && current.stops.length === 0 ? [{ date: current.date, dateTba: current.dateTba, location: current.location }] : current.stops
+      const stops = type === 'tour' && current.stops.length === 0 ? [{ date: current.date, dateTba: current.dateTba, location: current.location, startTime: current.startTime, endDate: current.endDate, endTime: current.endTime, timezone: current.timezone || DEFAULT_TIME_ZONE, completed: false }] : current.stops
       const first = stops[0]
-      return { ...current, type, stops, date: type === 'concert' ? first?.date || current.date : current.date, location: type === 'concert' ? first?.location || current.location : current.location, dateTba: type === 'tour' ? stops.every(stop => stop.dateTba) : first ? first.dateTba : current.dateTba }
+      return { ...current, type, stops, date: type === 'concert' ? first?.date || current.date : current.date, startTime: type === 'concert' ? first?.startTime || current.startTime : current.startTime, endDate: type === 'concert' ? first?.endDate || current.endDate : current.endDate, endTime: type === 'concert' ? first?.endTime || current.endTime : current.endTime, timezone: type === 'concert' ? first?.timezone || current.timezone : current.timezone, location: type === 'concert' ? first?.location || current.location : current.location, dateTba: type === 'tour' ? stops.every(stop => stop.dateTba) : first ? first.dateTba : current.dateTba }
     })
     setNotice('')
   }
@@ -80,7 +84,7 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
     setWorking(true)
     try {
       const { id, imageUrl, musicUrl, musicName, ...fields } = draft; void imageUrl; void musicUrl; void musicName
-      const stops = draft.type === 'tour' ? fields.stops.map(stop => ({ ...stop, date: stop.dateTba || !stop.date ? undefined : stop.date })) : fields.stops
+      const stops = draft.type === 'tour' ? fields.stops.map(stop => ({ ...stop, date: stop.dateTba || !stop.date ? undefined : stop.date, endDate: stop.dateTba || !stop.date || !stop.endDate ? undefined : stop.endDate })) : fields.stops
       const payload = { ...fields, date: draft.type === 'tour' || draft.dateTba || !fields.date ? undefined : fields.date, location: draft.type === 'tour' || !fields.location ? undefined : fields.location, stops }
       const route = `admin/events${id ? `/${id}` : ''}`
       const method = id ? 'PUT' : 'POST'
@@ -146,15 +150,29 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
         {draft.type === 'concert' ? <>
           <label className="admin-field">Location<input value={draft.location} required maxLength={160} onChange={event => change('location',event.target.value)} placeholder="City, venue or country" /></label>
           {draft.dateTba ? <div className="admin-field">Event date<span className="admin-date-announced">{TBA_LABEL}</span></div> : <label className="admin-field">Event date<input type="date" value={draft.date} required min="1900-01-01" max="2200-12-31" onChange={event => change('date',event.target.value)} /></label>}
+          <div className="admin-event-schedule">
+            <label className="admin-field">Start time<input type="time" value={draft.startTime || ''} onChange={event => change('startTime', event.target.value)} /></label>
+            <label className="admin-field">End date<input type="date" value={draft.endDate || ''} min={draft.date || '1900-01-01'} max="2200-12-31" onChange={event => change('endDate', event.target.value)} /></label>
+            <label className="admin-field">End time<input type="time" value={draft.endTime || ''} onChange={event => change('endTime', event.target.value)} /></label>
+            <label className="admin-field">Time zone<input list="trn-timezones" value={draft.timezone || DEFAULT_TIME_ZONE} maxLength={64} onChange={event => change('timezone', event.target.value)} placeholder={DEFAULT_TIME_ZONE} /></label>
+          </div>
+          <p className="admin-file-help">Add the local start and end time for an exact countdown. Times are shown in the event time zone.</p>
         </> : <section className="admin-tour-dates" aria-labelledby="admin-tour-title"><h3 id="admin-tour-title">Tour dates and locations</h3><p className="admin-file-help">Add at least two shows. Dated shows are saved in chronological order; shows marked as to be announced appear last.</p>
           {draft.stops.map((stop,index) => <fieldset className="admin-tour-stop" key={index}><legend>Show {index + 1}</legend>
             <label className="admin-field">Location<input aria-label={`Show ${index + 1} location`} required maxLength={160} value={stop.location} placeholder="City and venue" onChange={event => changeStop(index, 'location', event.target.value)} /></label>
             <div className="admin-field">Date{stop.dateTba ? <span className="admin-date-announced">{TBA_LABEL}</span> : <input aria-label={`Show ${index + 1} date`} type="date" required min="1900-01-01" max="2200-12-31" value={stop.date} onChange={event => changeStop(index, 'date', event.target.value)} />}
               <label className="admin-stop-tba"><input type="checkbox" checked={stop.dateTba} onChange={event => setStopTba(index, event.target.checked)} />Date to be announced</label>
+              <label className="admin-stop-tba"><input type="checkbox" checked={Boolean(stop.completed)} onChange={event => setStopCompleted(index, event.target.checked)} />Show completed</label>
             </div>
             <button type="button" className="admin-tour-remove" disabled={draft.stops.length <= 1} onClick={() => change('stops', draft.stops.filter((_,i) => i !== index))} aria-label={`Remove show ${index + 1}`}><X size={18} /></button>
+            <div className="admin-tour-stop-schedule">
+              <label className="admin-field">Start time<input aria-label={`Show ${index + 1} start time`} type="time" value={stop.startTime || ''} onChange={event => changeStop(index, 'startTime', event.target.value)} /></label>
+              <label className="admin-field">End date<input aria-label={`Show ${index + 1} end date`} type="date" value={stop.endDate || ''} min={stop.date || '1900-01-01'} max="2200-12-31" onChange={event => changeStop(index, 'endDate', event.target.value)} /></label>
+              <label className="admin-field">End time<input aria-label={`Show ${index + 1} end time`} type="time" value={stop.endTime || ''} onChange={event => changeStop(index, 'endTime', event.target.value)} /></label>
+              <label className="admin-field">Time zone<input aria-label={`Show ${index + 1} time zone`} list="trn-timezones" value={stop.timezone || DEFAULT_TIME_ZONE} maxLength={64} onChange={event => changeStop(index, 'timezone', event.target.value)} placeholder={DEFAULT_TIME_ZONE} /></label>
+            </div>
           </fieldset>)}
-          <button type="button" className="admin-upload admin-tour-add" disabled={draft.stops.length >= 100} onClick={() => change('stops', [...draft.stops, { date: '', dateTba: draft.dateTba, location: '' }])}><Plus size={20} aria-hidden="true" />Add show</button>
+          <button type="button" className="admin-upload admin-tour-add" disabled={draft.stops.length >= 100} onClick={() => change('stops', [...draft.stops, { date: '', dateTba: draft.dateTba, location: '', startTime: '', endTime: '', timezone: draft.timezone || DEFAULT_TIME_ZONE, completed: false }])}><Plus size={20} aria-hidden="true" />Add show</button>
         </section>}
         <div className="admin-event-toggles">
           <label className="admin-event-publish"><input type="checkbox" checked={draft.published} onChange={event => change('published',event.target.checked)} />Visible on website</label>
@@ -162,7 +180,9 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
           <label className="admin-event-publish"><input type="checkbox" checked={draft.type === 'tour' ? draft.stops.length > 0 && draft.stops.every(stop => stop.dateTba) : draft.dateTba} onChange={event => setTba(event.target.checked)} />{draft.type === 'tour' ? 'All dates to be announced' : 'Date to be announced'}</label>
         </div>
         <div className="admin-event-actions"><button type="submit" className="admin-primary" disabled={!dirty || busy}>{working ? 'Saving…' : 'Save event'}</button>{dirty && <button type="button" className="admin-discard" disabled={busy} onClick={() => { setDraft(JSON.parse(saved) as Draft); setError(''); setNotice('') }}>Discard changes</button>}</div>
-      </div></div></fieldset></form>
+      </div></div>
+      <datalist id="trn-timezones">{TIME_ZONE_OPTIONS.map(zone => <option key={zone} value={zone} />)}</datalist>
+      </fieldset></form>
     </div>}
     <p className="admin-footer-note">Saved events appear on new visits immediately. Open pages update within 30 seconds.</p>
   </section>

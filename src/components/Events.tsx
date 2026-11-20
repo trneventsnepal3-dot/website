@@ -1,5 +1,6 @@
 import './events.css'
-import { eventDateLabel, eventVenueLabel, formatEventDate, useEvents, usePastEvents } from '../events'
+import EventCountdown from './EventCountdown'
+import { eventDateLabel, eventVenueLabel, formatEventDate, formatEventTime, useEvents, usePastEvents } from '../events'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, X } from '@phosphor-icons/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -75,6 +76,7 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
             {active.date && <span className="past-dialog-tag">{new Date(`${active.date}T00:00:00Z`).getUTCFullYear()}</span>}
             <span className="past-dialog-tag">{active.type === 'tour' ? `${active.stops.length} shows` : active.location}</span>
           </div>
+          {active.type === 'concert' && <EventCountdown event={active} />}
           <dl className="past-dialog-info">
             <div><dt>Date</dt><dd>{eventDateLabel(active)}</dd></div>
             <div><dt>{active.type === 'tour' ? 'Shows' : 'Venue'}</dt><dd>{eventVenueLabel(active)}</dd></div>
@@ -82,7 +84,14 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
             {active.organizer && <div><dt>{active.organizerType === 'tour' ? 'Tour by' : 'Org by'}</dt><dd>{active.organizer}</dd></div>}
           </dl>
           {active.organizerMessage && active.description && <div className="past-dialog-note"><h3>A note from the organiser</h3><p>{active.organizerMessage}</p></div>}
-          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => <li key={`${stop.date}-${index}`}><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time><p>{stop.location}</p></li>)}</ol></section>}
+          {active.type === 'tour' && active.stops.length > 0 && <section className="past-dialog-stops" aria-labelledby="tour-dates-title"><h3 id="tour-dates-title">Tour dates</h3><ol>{active.stops.map((stop,index) => {
+            const stopTime = stop.dateTba ? '' : formatEventTime(stop.startTime)
+            return <li key={`${stop.date}-${index}`}>
+              <div className="past-dialog-stop-head"><time dateTime={stop.date || undefined}>{formatEventDate(stop.date)}</time>{stopTime && <span className="past-dialog-stop-time">{stopTime}</span>}</div>
+              <p>{stop.location}</p>
+              <EventCountdown event={active} stop={stop} compact />
+            </li>
+          })}</ol></section>}
         </div></>}
     </dialog>
   </>

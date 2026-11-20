@@ -40,6 +40,10 @@ ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS organizer_message text NOT NULL 
 ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS event_number text NOT NULL DEFAULT '';
 ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS organizer_type text NOT NULL DEFAULT 'org' CHECK (organizer_type IN ('org','tour'));
 ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS music_id uuid REFERENCES trn_media(id);
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS start_time text;
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS end_date date;
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS end_time text;
+ALTER TABLE trn_events ADD COLUMN IF NOT EXISTS timezone text NOT NULL DEFAULT 'Asia/Kathmandu';
 INSERT INTO trn_media(id,kind,pathname,owner,name,url,content_type,size,storage_bucket)
  SELECT '00000000-0000-4000-8000-000000000002','event','trn/original/IMG_0674.JPG.jpeg','event-seed','IMG_0674.JPG.jpeg',
  COALESCE(NULLIF(gallery_base_url,''),'/media') || '/IMG_0674.JPG.jpeg','image/jpeg',164477,'media'
