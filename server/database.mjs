@@ -9,7 +9,16 @@ function isNeonOutage(error) {
   return /fetch failed|timeout|timed out|ECONNRESET|ECONNREFUSED|ENOTFOUND|socket hang up/i.test(error?.message || '');
 }
 
-export function createDatabase(env = process.env, query) {
+function deletedKey(statement, values, rows) {
+  if (!Array.isArray(rows) || !rows.length) return null;
+  const sql = String(statement).replace(/\s+/g, ' ').trim();
+  const entity = /^DELETE FROM (trn_(?:events|gallery|albums)) WHERE id=\$1(?: AND revision=\$2)?(?: RETURNING id)?$/i.exec(sql);
+  if (entity) return { table: entity[1], pk: 'id', value: values[0] };
+  if (/^DELETE FROM trn_sessions WHERE token=\$1$/i.test(sql)) return { table: 'trn_sessions', pk: 'token', value: values[0] };
+  return null;
+}
+
+export function createDatabase(env = process.env, query, onWrite) {
   if (query) return async (statement, values = []) => query(statement, values);
 
   const neonSql = env.DATABASE_URL ? neon(env.DATABASE_URL) : null;
@@ -26,16 +35,26 @@ export function createDatabase(env = process.env, query) {
   let retryNeonAt = 0;
 
   return async function db(statement, values = []) {
+    const write = /^\s*(INSERT|UPDATE|DELETE)\b/i.exec(statement)?.[1]?.toLowerCase() || '';
+    const finish = async (rows, source) => {
+      if (write && onWrite) {
+        try { await onWrite(source, write === 'delete' ? deletedKey(statement, values, rows) : null); }
+        catch (error) { console.warn(`TRN sync could not queue ${source} changes: ${error.message}`); }
+      }
+      return rows;
+    };
+
     if (active === 'neon') {
-      try {
-        return await neonSql.query(statement, values);
-      } catch (error) {
+      let rows;
+      try { rows = await neonSql.query(statement, values); }
+      catch (error) {
         if (!supabase || !isNeonOutage(error)) throw error;
         active = 'supabase';
         retryNeonAt = Date.now() + NEON_RETRY_MS;
         console.warn('Neon is unavailable; using Supabase until Neon recovers.');
-        return supabase(statement, values);
+        return finish(await supabase(statement, values), 'supabase');
       }
+      return finish(rows, 'neon');
     }
 
     if (!forceSupabase && neonSql && Date.now() >= retryNeonAt) {
@@ -43,7 +62,7 @@ export function createDatabase(env = process.env, query) {
         const rows = await neonSql.query(statement, values);
         active = 'neon';
         console.log('Neon is available again; primary database restored.');
-        return rows;
+        return finish(rows, 'neon');
       } catch (error) {
         retryNeonAt = Date.now() + NEON_RETRY_MS;
         if (!isNeonOutage(error)) throw error;
@@ -51,6 +70,6 @@ export function createDatabase(env = process.env, query) {
     }
 
     if (!supabase) throw new Error('Supabase is not configured.');
-    return supabase(statement, values);
+    return finish(await supabase(statement, values), 'supabase');
   };
 }

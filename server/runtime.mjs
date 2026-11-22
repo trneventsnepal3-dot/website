@@ -1,4 +1,5 @@
 import { createDatabase } from './database.mjs';
+import { createSync } from './sync.mjs';
 import { createStorage, mediaTypes as types, mediaLimits as limits, mediaExtension } from './storage.mjs';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -41,7 +42,8 @@ async function readBody(req) {
   try { return JSON.parse(raw || '{}'); } catch { fail(400, 'Invalid request.'); }
 }
 export function createHandler({ env = process.env, query, storage = createStorage(env) } = {}) {
-  const db = createDatabase(env, query);
+  const sync = createSync(env, { query });
+  const db = createDatabase(env, query, (source, deletion) => sync.mark(source, deletion));
   const credential = () => digest(env.ADMIN_PASSWORD_HASH || '');
   const events = createEvents(db);
   const gallery = createGallery(db);
@@ -71,6 +73,10 @@ export function createHandler({ env = process.env, query, storage = createStorag
     res.setHeader('Cache-Control', 'no-store'); res.setHeader('X-Content-Type-Options', 'nosniff');
     const send = (status, data) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(data)); };
     const cookie = (token, age) => res.setHeader('Set-Cookie', `trn_admin=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${age}${env.VERCEL || env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+    if (sync.enabled) {
+      try { await sync.flush(); }
+      catch (error) { console.warn(`TRN sync check failed: ${error.message}`); }
+    }
     try {
       const path = new URL(req.url, 'http://localhost').pathname.replace(/\/$/, '');
       const method = req.method;

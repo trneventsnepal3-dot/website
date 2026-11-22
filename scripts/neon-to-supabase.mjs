@@ -17,6 +17,7 @@ const headers = extra => ({
 });
 const publicUrl = (bucket, pathname) => `${base}/storage/v1/object/public/${bucket}/${pathname.split('/').map(encodeURIComponent).join('/')}`;
 const galleryBase = `${base}/storage/v1/object/public/${process.env.SUPABASE_MEDIA_BUCKET || 'media'}`;
+const isSyncMarker = name => String(name || '').startsWith('trn_sync:');
 
 async function check(response, action) {
   if (response.ok) return response;
@@ -93,9 +94,9 @@ async function main() {
   await upsert('trn_events', events);
 
   const migrations = await sql.query('SELECT * FROM trn_migrations ORDER BY name');
-  await upsert('trn_migrations', migrations, 'name');
+  await upsert('trn_migrations', migrations.filter(row => !isSyncMarker(row.name)), 'name');
 
-  console.log('Neon data and media now match in Supabase. The app still switches back to Neon automatically when its quota recovers.');
+  console.log('Neon data and media have been copied to Supabase. Future changes are kept in sync by the queued sync.');
 }
 
 try {

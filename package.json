@@ -12,6 +12,8 @@
     "storage:sync": "node --env-file-if-exists=../.env --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/storage.mjs sync",
     "supabase:setup": "node --env-file-if-exists=../.env --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/supabase-setup.mjs",
     "supabase:migrate-neon": "node --env-file-if-exists=../.env --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/neon-to-supabase.mjs",
+    "db:sync": "node --env-file-if-exists=../.env --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/sync-dbs.mjs",
+    "db:verify": "node --env-file-if-exists=../.env --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/verify-sync.mjs",
     "test": "node --test tests/*.test.mjs",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0"
