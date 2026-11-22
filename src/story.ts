@@ -584,11 +584,20 @@ function overflowWord(value: string) {
   return (clean(value).split(' ').filter(Boolean)[0] || 'TRN').toUpperCase()
 }
 
+function normalizedPlace(value: string) {
+  return clean(value).toLowerCase().replace(/[·|,;:–—-]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 function placeLabel(data: StoryData, venue = '') {
   const city = clean(data.city)
   const country = clean(data.country)
-  const label = [city, country && !city.toLowerCase().includes(country.toLowerCase()) ? country : ''].filter(Boolean).join(' · ')
-  return sameText(label, venue) ? '' : label
+  const parts = [city, country && !city.toLowerCase().includes(country.toLowerCase()) ? country : ''].filter(Boolean)
+  const label = parts.join(' · ')
+  if (!label) return ''
+  const venueText = normalizedPlace(venue)
+  if (!venueText) return label
+  if (normalizedPlace(label) === venueText) return ''
+  return parts.every(part => venueText.includes(normalizedPlace(part))) ? '' : label
 }
 
 function organizerLabel(data: StoryData) {
