@@ -15,13 +15,12 @@ import {
 } from '@phosphor-icons/react'
 import type { LiveEvent } from '../events'
 import { eventDateLabel, eventVenueLabel } from '../events'
-import { eventLink } from '../calendar'
 import {
   STORY_TEMPLATES,
-  buildStoryBlob,
   buildStoryCanvas,
   canvasBlob,
   storyData,
+  storyEventUrl,
   storyFileName,
   type StoryTemplateId,
 } from '../story'
@@ -35,6 +34,8 @@ type Props = {
   event: LiveEvent
   onClose: () => void
 }
+
+type CachedStory = { canvas: HTMLCanvasElement; file?: File }
 
 function supportsFileSharing() {
   if (typeof navigator.share !== 'function' || typeof navigator.canShare !== 'function') return false
@@ -83,11 +84,13 @@ export default function StoryShareDialog({ event, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
   const preview = useRef<HTMLCanvasElement>(null)
-  const file = useRef<File | null>(null)
   const eventRef = useRef(event)
+  const templateRef = useRef<StoryTemplateId>('experimental')
+  const cache = useRef<Partial<Record<StoryTemplateId, CachedStory>>>({})
+  const buildToken = useRef(0)
   const closed = useRef(false)
-  const renderToken = useRef(0)
-  const [template, setTemplate] = useState<StoryTemplateId>('cinema')
+  const [template, setTemplate] = useState<StoryTemplateId>('experimental')
+  const [thumbnails, setThumbnails] = useState<Partial<Record<StoryTemplateId, string>>>({})
   const [preparing, setPreparing] = useState(true)
   const [busy, setBusy] = useState<Busy>(null)
   const [status, setStatus] = useState<ShareStatus>(null)
@@ -95,8 +98,17 @@ export default function StoryShareDialog({ event, onClose }: Props) {
   const [canShareImages] = useState(() => supportsFileSharing())
 
   eventRef.current = event
+  templateRef.current = template
   const summary = storyData(event)
-  const link = eventLink(event)
+  const link = storyEventUrl(event)
+
+  const paintPreview = (canvas: HTMLCanvasElement) => {
+    const target = preview.current
+    if (!target) return
+    if (target.width !== canvas.width) target.width = canvas.width
+    if (target.height !== canvas.height) target.height = canvas.height
+    target.getContext('2d')?.drawImage(canvas, 0, 0)
+  }
 
   const finish = () => {
     if (closed.current) return
@@ -118,47 +130,72 @@ export default function StoryShareDialog({ event, onClose }: Props) {
     closeButton.current?.focus({ preventScroll: true })
   }, [])
 
+  // Render each direction once. The same canvases drive thumbnails, the live
+  // preview and downloads, so switching templates is instant and exports match.
   useEffect(() => {
-    const token = ++renderToken.current
+    const token = ++buildToken.current
     let cancelled = false
-    file.current = null
+    cache.current = {}
+    setThumbnails({})
     setPreparing(true)
+    setStatus(null)
+
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
-          const canvas = await buildStoryCanvas(eventRef.current, template)
-          if (cancelled || token !== renderToken.current) return
-          const target = preview.current
-          if (target) {
-            target.width = canvas.width
-            target.height = canvas.height
-            target.getContext('2d')?.drawImage(canvas, 0, 0)
-          }
-          const blob = await canvasBlob(canvas)
-          if (cancelled || token !== renderToken.current) return
-          file.current = new File([blob], storyFileName(eventRef.current), { type: 'image/png' })
+          const results = await Promise.all(STORY_TEMPLATES.map(async item => {
+            const canvas = await buildStoryCanvas(eventRef.current, item.id)
+            const thumbnail = document.createElement('canvas')
+            thumbnail.width = 108
+            thumbnail.height = 192
+            const context = thumbnail.getContext('2d')
+            if (context) {
+              context.imageSmoothingEnabled = true
+              context.imageSmoothingQuality = 'high'
+              context.drawImage(canvas, 0, 0, thumbnail.width, thumbnail.height)
+            }
+            return { id: item.id, canvas, url: thumbnail.toDataURL('image/png') }
+          }))
+          if (cancelled || token !== buildToken.current) return
+
+          const nextCache: Partial<Record<StoryTemplateId, CachedStory>> = {}
+          const nextThumbnails: Partial<Record<StoryTemplateId, string>> = {}
+          results.forEach(result => {
+            nextCache[result.id] = { canvas: result.canvas }
+            nextThumbnails[result.id] = result.url
+          })
+          cache.current = nextCache
+          setThumbnails(nextThumbnails)
+          const active = nextCache[templateRef.current]
+          if (active) paintPreview(active.canvas)
           setPreparing(false)
         } catch (error) {
-          if (cancelled) return
+          if (cancelled || token !== buildToken.current) return
           setPreparing(false)
-          setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not prepare the story image.' })
+          setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not prepare the story images.' })
         }
       })()
-    }, 24)
+    }, 20)
+
     return () => { cancelled = true; window.clearTimeout(timer) }
-  }, [event.id, event.revision, template])
+  }, [event.id, event.revision])
+
+  useEffect(() => {
+    const active = cache.current[template]
+    if (active) paintPreview(active.canvas)
+  }, [template, preparing])
 
   const ensureFile = async () => {
-    if (file.current) return file.current
-    const blob = await buildStoryBlob(eventRef.current, template)
+    const cached = cache.current[template]
+    if (cached?.file) return cached.file
+    const canvas = cached?.canvas || await buildStoryCanvas(eventRef.current, template)
+    const blob = await canvasBlob(canvas)
     const generated = new File([blob], storyFileName(eventRef.current), { type: 'image/png' })
-    file.current = generated
-    setPreparing(false)
+    cache.current[template] = { canvas, file: generated }
     return generated
   }
 
-  const copyEventLink = async (announce = true) => {
-    const value = eventLink(eventRef.current)
+  const copyUrl = async (value: string, announce = true) => {
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value)
       else copyFallback(value)
@@ -172,9 +209,11 @@ export default function StoryShareDialog({ event, onClose }: Props) {
     return true
   }
 
+  const copyEventLink = (announce = true) => copyUrl(storyEventUrl(eventRef.current), announce)
+
   const shareText = () => {
     const current = storyData(eventRef.current)
-    return [current.name, [current.date, current.venue].filter(Boolean).join(' · '), eventLink(eventRef.current)]
+    return [current.name, [current.date, current.venue].filter(Boolean).join(' · '), storyEventUrl(eventRef.current)]
       .filter(Boolean)
       .join('\n')
   }
@@ -183,8 +222,11 @@ export default function StoryShareDialog({ event, onClose }: Props) {
     setBusy(platform)
     setStatus(null)
     setFallback(null)
+    const instagram = platform === 'instagram'
+    let urlCopied = false
     try {
       const target = await ensureFile()
+      if (instagram) urlCopied = await copyUrl(storyEventUrl(eventRef.current), false)
       if (canShareFile(target)) {
         try {
           await navigator.share({
@@ -192,23 +234,39 @@ export default function StoryShareDialog({ event, onClose }: Props) {
             title: eventRef.current.name,
             text: shareText(),
           })
-          setStatus({ tone: 'ok', text: 'Share sheet finished. Your Story is ready to publish in the app.' })
+          setStatus({
+            tone: 'ok',
+            text: instagram
+              ? urlCopied
+                ? `Story image ready. Add Instagram's Link sticker with the copied URL.`
+                : `Story image ready. Add the event URL with Instagram's Link sticker.`
+              : 'Share sheet finished. Your Story is ready to publish in the app.',
+          })
           return
         } catch (error) {
           if ((error as Error).name === 'AbortError') {
-            setStatus({ tone: 'info', text: 'Sharing cancelled. The story image is still ready to download.' })
+            setStatus({
+              tone: 'info',
+              text: instagram
+                ? `Sharing cancelled. The image is ready to download and the URL is copied for Instagram's Link sticker.`
+                : 'Sharing cancelled. The story image is still ready to download.',
+            })
             return
           }
         }
       }
       downloadFile(target)
-      const copied = await copyEventLink(false)
+      const copied = urlCopied || await copyUrl(storyEventUrl(eventRef.current), false)
       setFallback(platform)
       setStatus({
         tone: 'info',
-        text: copied
-          ? 'Story saved and event link copied. Finish it in the app — the link is ready for the Link sticker.'
-          : 'Story saved. Finish it in the app and add the event link with the Link sticker.',
+        text: instagram
+          ? copied
+            ? `Story saved and URL copied. Add Instagram's Link sticker with the copied URL.`
+            : `Story saved. Add the event URL with Instagram's Link sticker.`
+          : copied
+            ? 'Story saved and event link copied. Finish it in the app — the link is ready for the Link sticker.'
+            : 'Story saved. Finish it in the app and add the event link with the Link sticker.',
       })
     } catch (error) {
       setStatus({ tone: 'error', text: error instanceof Error ? error.message : 'Could not share the story image.' })
@@ -290,7 +348,7 @@ export default function StoryShareDialog({ event, onClose }: Props) {
       <div className="share-shell">
         <header className="share-head">
           <div className="share-head-copy">
-            <span className="share-eyebrow">Share the night</span>
+            <span className="share-eyebrow">Campaign directions</span>
             <h2 id="story-share-title">Create a story</h2>
           </div>
           <button ref={closeButton} type="button" className="share-close" onClick={close} aria-label="Close share dialog">
@@ -312,7 +370,7 @@ export default function StoryShareDialog({ event, onClose }: Props) {
               </canvas>
               <span className="share-phone-notch" aria-hidden="true" />
               <span className="share-phone-home" aria-hidden="true" />
-              {preparing && <div className="share-preparing" role="status"><SpinnerGap size={20} className="share-spin" aria-hidden="true" />Preparing preview</div>}
+              {preparing && <div className="share-preparing" role="status"><SpinnerGap size={20} className="share-spin" aria-hidden="true" />Preparing designs</div>}
             </div>
 
             <div className="share-templates" role="group" aria-label="Choose a story design">
@@ -320,13 +378,17 @@ export default function StoryShareDialog({ event, onClose }: Props) {
                 <button
                   key={item.id}
                   type="button"
-                  className={`share-template${template === item.id ? ' is-active' : ''}`}
+                  className={`share-template-card${template === item.id ? ' is-active' : ''}`}
                   onClick={() => setTemplate(item.id)}
                   aria-pressed={template === item.id}
                   title={item.note}
                 >
-                  <span className="share-template-dot" style={{ background: item.accent }} aria-hidden="true" />
-                  {item.name}
+                  <span className="share-template-thumb">
+                    {thumbnails[item.id]
+                      ? <img src={thumbnails[item.id]} alt="" />
+                      : <span className="share-template-loading" aria-hidden="true" />}
+                  </span>
+                  <span className="share-template-name">{item.name}</span>
                 </button>
               ))}
             </div>

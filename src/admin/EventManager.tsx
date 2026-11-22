@@ -7,6 +7,14 @@ import { uploadMedia } from '../upload'
 type Draft = Omit<LiveEvent, 'id'> & { id: string | null }
 type AlbumOption = { id: string; name: string }
 const empty = (): Draft => ({ id: null, revision: 0, name: '', location: '', date: '', dateTba: false, imageId: '', imageUrl: '', published: true, type: 'concert', artist: '', description: '', stops: [], isPast: false, organizer: '', organizerType: 'org', organizerMessage: '', eventNumber: '', musicId: null, musicUrl: null, musicName: null, startTime: '', endDate: '', endTime: '', timezone: DEFAULT_TIME_ZONE, albumId: null, albumName: null, album: null, recapUrl: '' })
+function keepUnsavedDraft(current: Draft, fresh: Draft, baseline: Draft): Draft {
+  const merged = { ...fresh } as Record<string, unknown>
+  for (const key of Object.keys(current) as (keyof Draft)[]) {
+    if (key === 'id' || key === 'revision') continue
+    if (JSON.stringify(current[key]) !== JSON.stringify(baseline[key])) merged[key] = current[key]
+  }
+  return merged as unknown as Draft
+}
 export default function EventManager({ uploadsAvailable }: { uploadsAvailable: boolean }) {
   const [events, setEvents] = useState<LiveEvent[]>([])
   const [albums, setAlbums] = useState<AlbumOption[]>([])
@@ -26,10 +34,20 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
   const dirty = JSON.stringify(draft) !== saved
   const busy = working || uploading || musicUploading
   const choose = (value: Draft) => { setDraft(value); setSaved(JSON.stringify(value)); setError(''); setNotice(''); setRemoving(null) }
-  const load = async () => {
+  const load = async (keepChanges = false) => {
     setLoading(true); setLoadFailed(false)
-    try { const value = await api<LiveEvent[]>('admin/events'); setEvents(value); choose(value[0] || empty()) }
-    catch(e) { setLoadFailed(true); setError((e as Error).message) } finally { setLoading(false) }
+    try {
+      const value = await api<LiveEvent[]>('admin/events')
+      setEvents(value)
+      if (keepChanges && draft.id) {
+        const fresh = value.find(item => item.id === draft.id)
+        if (fresh) {
+          try { setDraft(keepUnsavedDraft(draft, fresh, JSON.parse(saved) as Draft)) }
+          catch { setDraft(fresh) }
+          setSaved(JSON.stringify(fresh)); setError(''); setNotice('Events reloaded. Save again to keep your changes.'); setRemoving(null)
+        } else choose(value[0] || empty())
+      } else choose(value[0] || empty())
+    } catch(e) { setLoadFailed(true); setError((e as Error).message) } finally { setLoading(false) }
   }
   useEffect(() => { void load() }, [])
   useEffect(() => { void api<AlbumOption[]>('admin/albums').then(value => setAlbums(value.map(({ id, name }) => ({ id, name })))).catch(() => {}) }, [])
@@ -109,7 +127,23 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
       choose(value)
       if (partial) setNotice('Event saved, but the connected server is an older version and ignored some fields (like the event number). Restart or redeploy the server to save them.')
       else setNotice(value.published ? 'Event is live on the website.' : 'Event saved and hidden from the website.')
-    } catch(e) { setError((e as Error).message) } finally { setWorking(false) }
+    } catch(e) {
+      const error = e as Error & { status?: number }
+      if (error.status === 409 && draft.id) {
+        try {
+          const freshList = await api<LiveEvent[]>('admin/events')
+          const fresh = freshList.find(item => item.id === draft.id)
+          setEvents(freshList)
+          if (!fresh) throw new Error('This event was removed elsewhere. Reload events to continue.')
+          let baseline: Draft
+          try { baseline = JSON.parse(saved) as Draft } catch { baseline = fresh as Draft }
+          setDraft(keepUnsavedDraft(draft, fresh as Draft, baseline))
+          setSaved(JSON.stringify(fresh))
+          setError('')
+          setNotice('Event changed elsewhere. Your unsaved changes were kept — save again.')
+        } catch (reloadError) { setError((reloadError as Error).message) }
+      } else setError(error.message)
+    } finally { setWorking(false) }
   }
   async function remove(event: LiveEvent) {
     setWorking(true); setError(''); setNotice('')
@@ -121,7 +155,7 @@ export default function EventManager({ uploadsAvailable }: { uploadsAvailable: b
     } catch(e) { setError((e as Error).message) } finally { setWorking(false) }
   }
   return <section className="admin-events" aria-label="Manage live events">
-    {error && <div className="admin-message admin-error" role="alert">{error}{(loadFailed || error.includes('Reload')) && <button onClick={() => { if (!dirty || window.confirm('Discard unsaved event changes and reload?')) void load() }} disabled={busy}>Reload events</button>}</div>}
+    {error && <div className="admin-message admin-error" role="alert">{error}{(loadFailed || error.includes('Reload')) && <button onClick={() => { if (draft.id || !dirty || window.confirm('Discard unsaved event changes and reload?')) void load(true) }} disabled={busy}>Reload events</button>}</div>}
     {notice && <p className="admin-message" role="status">{notice}</p>}
     {loading ? <p role="status">Loading events…</p> : !loadFailed && <div className="admin-event-grid">
       <section className="admin-panel admin-event-list"><div className="admin-event-list-heading"><h2>Events on the website</h2><button className="admin-upload" disabled={busy} onClick={() => select(empty())}><Plus size={16} />Add event</button></div>

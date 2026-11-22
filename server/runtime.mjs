@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import { createDatabase } from './database.mjs';
 import { createStorage, mediaTypes as types, mediaLimits as limits, mediaExtension } from './storage.mjs';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -41,13 +41,7 @@ async function readBody(req) {
   try { return JSON.parse(raw || '{}'); } catch { fail(400, 'Invalid request.'); }
 }
 export function createHandler({ env = process.env, query, storage = createStorage(env) } = {}) {
-  let sql;
-  const db = async (statement, values = []) => {
-    if (query) return query(statement, values);
-    if (!env.DATABASE_URL) fail(503, 'Add DATABASE_URL and run the database migration.');
-    sql ||= neon(env.DATABASE_URL);
-    return sql.query(statement, values);
-  };
+  const db = createDatabase(env, query);
   const credential = () => digest(env.ADMIN_PASSWORD_HASH || '');
   const events = createEvents(db);
   const gallery = createGallery(db);
@@ -127,7 +121,7 @@ export function createHandler({ env = process.env, query, storage = createStorag
       }
       if (path === '/api/admin/uploads' && method === 'POST') {
         csrf(req); const owner = await authenticate(req);
-        if (!storage.configured()) fail(503, 'Add the Neon object storage credentials to enable uploads.');
+        if (!storage.configured()) fail(503, 'Add Neon or Supabase object storage credentials to enable uploads.');
         const parsed = uploadSchema.safeParse(await readBody(req));
         if (!parsed.success) fail(400, 'Invalid upload details.');
         const { kind, name, contentType, size } = parsed.data;
@@ -193,8 +187,8 @@ export function createHandler({ env = process.env, query, storage = createStorag
       }
       fail(404, 'Not found.');
     } catch (error) {
-      if (!error.status) console.error('TRN API failure:', error.name, error.code || '');
-      send(error.status || 503, { error: error.status ? error.message : 'Service unavailable. Check the Neon connection and storage configuration, then try again.' });
+      if (!error.status) console.error('TRN API failure:', error);
+      send(error.status || 503, { error: error.status ? error.message : 'Service unavailable. Check the database and storage configuration, then try again.' });
     }
   };
 }

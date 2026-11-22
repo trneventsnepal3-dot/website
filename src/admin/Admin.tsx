@@ -9,6 +9,14 @@ import GalleryManager from './GalleryManager'
 function Switch({ checked, onChange, label, disabled = false }: { checked: boolean; onChange: (value: boolean) => void; label: string; disabled?: boolean }) {
   return <button type="button" role="switch" aria-checked={checked} aria-label={label} className="admin-switch" disabled={disabled} onClick={() => onChange(!checked)}><span /></button>
 }
+function keepUnsaved(current: Settings, fresh: Settings, baseline: Settings): Settings {
+  const merged = { ...fresh } as Record<string, unknown>
+  for (const key of Object.keys(current) as (keyof Settings)[]) {
+    if (key === 'revision') continue
+    if (JSON.stringify(current[key]) !== JSON.stringify(baseline[key])) merged[key] = current[key]
+  }
+  return merged as unknown as Settings
+}
 export default function Admin() {
   const [session, setSession] = useState<'loading' | 'signed-out' | 'signed-in'>('loading')
   const [tab, setTab] = useState<'media' | 'events' | 'albums'>('media')
@@ -24,9 +32,16 @@ export default function Admin() {
   const previewDialog = useRef<HTMLDialogElement>(null)
   const previewAudio = useRef<HTMLAudioElement>(null)
   const dirty = settings !== null && JSON.stringify(settings) !== saved
-  const load = async () => {
-    const value = await api<Settings>('admin/settings'); setSettings(value); setSaved(JSON.stringify(value)); setSession('signed-in')
+  const reload = async (keepChanges = false) => {
+    const fresh = await api<Settings>('admin/settings')
+    if (keepChanges && settings) {
+      try { setSettings(keepUnsaved(settings, fresh, JSON.parse(saved) as Settings)) }
+      catch { setSettings(fresh) }
+    } else setSettings(fresh)
+    setSaved(JSON.stringify(fresh)); setSession('signed-in')
+    return fresh
   }
+  const load = () => reload()
   useEffect(() => { document.title = 'Site controls — TRN Events'; void load().catch((e: Error & { status?: number }) => { setSession('signed-out'); if (e.status !== 401) setError(e.message) }) }, [])
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = '' } }
@@ -55,7 +70,18 @@ export default function Admin() {
       void popup; void audio; void hero; void galleryBaseUrl; void uploadsAvailable
       const value = await api<Settings>('admin/settings', 'PUT', payload)
       setSettings(value); setSaved(JSON.stringify(value)); setNotice('Changes are live.')
-    } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
+    } catch (e) {
+      const error = e as Error & { status?: number }
+      if (error.status === 409) {
+        try {
+          await reload(true)
+          setNotice('Settings changed elsewhere. Your unsaved changes were kept — save again.')
+          setError('')
+          return
+        } catch (reloadError) { setError((reloadError as Error).message); return }
+      }
+      setError(error.message)
+    } finally { setBusy(false) }
   }
   return <div className="admin-app">
     <header className="admin-header"><a href="/" className="admin-identity">TRN Events <span>Site controls</span></a><div><a href="/" target="_blank" rel="noreferrer">View website <ArrowUpRight size={16} /></a>{session === 'signed-in' && <button disabled={busy || !!uploading} onClick={async () => { setBusy(true); try { await api('admin/logout', 'POST'); setSettings(null); setSession('signed-out'); setPassword(''); setError(''); setNotice('') } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}>Sign out</button>}</div></header>
@@ -65,7 +91,7 @@ export default function Admin() {
       <div hidden={tab !== 'events'}><EventManager uploadsAvailable={Boolean(settings.uploadsAvailable)} /></div>
       <div hidden={tab !== 'albums'}><GalleryManager uploadsAvailable={Boolean(settings.uploadsAvailable)} disabled={busy||!!uploading} /></div>
       <div hidden={tab !== 'media'}>
-      {error && <div className="admin-message admin-error" role="alert">{error}{error.includes('Reload') && <button onClick={() => { void load().then(() => setError('')).catch(e => setError(e.message)) }}>Reload settings</button>}</div>}
+      {error && <div className="admin-message admin-error" role="alert">{error}{error.includes('Reload') && <button onClick={() => { void reload(true).then(() => { setError(''); setNotice('Settings reloaded. Save again to keep your changes.') }).catch(e => setError(e.message)) }}>Reload settings</button>}</div>}
       {notice && <p className="admin-message" role="status">{notice}</p>}
       <fieldset className="admin-edit-fields" disabled={busy}>
       <section className="admin-master"><div><h2>Site media</h2><p>Switch off all media at once. Your individual settings stay saved.</p></div><div className="admin-toggle-label"><span>{settings.effectsEnabled ? 'On' : 'Off'}</span><Switch label="Enable all site media" checked={settings.effectsEnabled} onChange={v => update('effectsEnabled', v)} disabled={busy} /></div></section>
