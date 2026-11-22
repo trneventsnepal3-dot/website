@@ -17,5 +17,12 @@ if (!process.env.DATABASE_URL) {
 }
 const server = http.createServer();
 const vite = await createServer({ server: { middlewareMode: true, hmr: { server } }, appType: 'spa' });
-server.on('request', (req, res) => req.url?.startsWith('/api/') ? handler(req, res) : vite.middlewares(req, res));
+server.on('request', (req, res) => {
+  if (req.url?.startsWith('/api/')) return handler(req, res);
+  // Shared event pages are server-rendered in production. In development, let Vite
+  // serve the app shell and keep /event/:id in the browser so the client can open it.
+  const shared = /^\/event\/[^/?#]+(\?[^#]*)?$/.exec(req.url || '');
+  if (shared) req.url = `/${shared[1] || ''}`;
+  return vite.middlewares(req, res);
+});
 server.listen(port, '0.0.0.0', () => console.log(`TRN running at http://localhost:${port}`));

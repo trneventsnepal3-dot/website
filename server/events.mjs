@@ -153,6 +153,13 @@ export function createEvents(db) {
   }
   return {
     list,
+    async get(id) {
+      if (!z.uuid().safeParse(id).success) return null;
+      const upcoming = await list();
+      const found = upcoming.find(event => event.id === id);
+      if (found) return found;
+      return (await list(false, true)).find(event => event.id === id) || null;
+    },
     async save(body, id) {
       const parsed = schema.safeParse(body);
       if (!parsed.success) reject(400, parsed.error.issues[0]?.message || 'Check the event details.');

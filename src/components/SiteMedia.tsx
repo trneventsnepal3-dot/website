@@ -13,7 +13,12 @@ export default function SiteMedia({ settings }: { settings: Settings }) {
   const dismiss = () => { dialog.current?.close(); if (popup) sessionStorage.setItem(`trn-popup-${popup.id}`, 'seen'); window.dispatchEvent(new Event('trn-site-music-start')) }
   useEffect(() => {
     if (!popup || sessionStorage.getItem(`trn-popup-${popup.id}`)) { dialog.current?.close(); return }
-    const timer = window.setTimeout(() => dialog.current?.showModal(), 1400)
+    const timer = window.setTimeout(() => {
+      // A shared event link opens the event dialog immediately. Never cover it
+      // with the announcement popup.
+      if (document.querySelector('.past-event-dialog[open], .story-share-dialog[open]')) return
+      dialog.current?.showModal()
+    }, 1400)
     return () => { window.clearTimeout(timer); dialog.current?.close() }
   }, [popup?.id])
   useEffect(() => {

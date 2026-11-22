@@ -3,8 +3,14 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/router?__trn_path=:path*" },
+    { "source": "/event/:id", "destination": "/api/router?__trn_path=event/:id" },
     { "source": "/admin", "destination": "/index.html" }
   ],
+  "functions": {
+    "api/router.js": {
+      "includeFiles": "dist/index.html"
+    }
+  },
   "headers": [
     {
       "source": "/media/hero-video.mp4",

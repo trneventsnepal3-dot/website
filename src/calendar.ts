@@ -18,8 +18,20 @@ const text = (value: string) => value.replace(/\\/g, '\\\\').replace(/;/g, '\\;'
 const safeName = (value: string) => value.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase()
 
 export function eventLink(event: LiveEvent) {
-  const base = `${window.location.origin}${window.location.pathname}`
-  return `${base}?event=${event.id}`
+  return `${window.location.origin}/event/${event.id}`
+}
+
+/** Event id from the canonical `/event/:id` page or an older `?event=` link. */
+export function linkedEventId() {
+  const match = /^\/event\/([0-9a-f-]{36})\/?$/i.exec(window.location.pathname)
+  return match?.[1] || new URLSearchParams(window.location.search).get('event')
+}
+
+/** Return to the homepage after closing a directly linked event. */
+export function clearEventUrl() {
+  if (/^\/event\/[0-9a-f-]{36}\/?$/i.test(window.location.pathname) || new URLSearchParams(window.location.search).get('event')) {
+    window.history.replaceState({}, '', '/')
+  }
 }
 
 export function eventLocation(event: LiveEvent, stop?: EventStop) {

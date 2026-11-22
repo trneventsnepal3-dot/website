@@ -1,11 +1,35 @@
 import { neon } from '@neondatabase/serverless';
 import { createStorage, mediaTypes as types, mediaLimits as limits, mediaExtension } from './storage.mjs';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { z } from 'zod';
 import { digest, verifyPassword } from './password.mjs';
 import { createEvents } from './events.mjs';
 import { createGallery } from './gallery.mjs';
 import { createAlbums } from './albums.mjs';
+import { applyEventMeta, renderEventNotFound } from './event-page.mjs';
+
+const EVENT_PATH = /^\/(?:api\/)?event\/([a-f0-9-]{36})\/?$/i;
+const EMPTY_TEMPLATE = '<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head><body><div id="root"></div></body></html>';
+
+async function eventTemplate() {
+  const production = process.env.VERCEL || process.env.NODE_ENV === 'production';
+  const files = production
+    ? [path.join(process.cwd(), 'dist', 'index.html'), path.join(process.cwd(), 'index.html')]
+    : [path.join(process.cwd(), 'index.html'), path.join(process.cwd(), 'dist', 'index.html')];
+  for (const file of files) {
+    try { return await readFile(file, 'utf8'); } catch { /* try the next build output */ }
+  }
+  return EMPTY_TEMPLATE;
+}
+
+function requestOrigin(req) {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'localhost:5173').split(',')[0].trim();
+  const forwarded = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const proto = forwarded || (/^(localhost|127\.|\[::1\])/i.test(host) ? 'http' : 'https');
+  return `${proto}://${host}`;
+}
 
 const settingSchema = z.object({ revision: z.number().int().nonnegative(), effectsEnabled: z.boolean(), popupEnabled: z.boolean(), audioEnabled: z.boolean(), heroVideoEnabled: z.boolean(), popupId: z.uuid().nullable(), audioId: z.uuid().nullable(), heroId: z.uuid().nullable(), popupAlt: z.string().trim().max(240), popupLink: z.union([z.literal(''), z.url().refine(v => v.startsWith('https://'), 'Use an https:// link')]), audioVolume: z.number().min(0).max(1) }).strict();
 const uploadSchema = z.object({ kind: z.enum(['popup', 'audio', 'hero', 'event', 'gallery']), name: z.string().trim().min(1).max(200), contentType: z.string(), size: z.number().int().positive() }).strict();
@@ -56,6 +80,28 @@ export function createHandler({ env = process.env, query, storage = createStorag
     try {
       const path = new URL(req.url, 'http://localhost').pathname.replace(/\/$/, '');
       const method = req.method;
+      const eventPage = EVENT_PATH.exec(path);
+      if (eventPage && method === 'GET') {
+        const event = await events.get(eventPage[1]);
+        const origin = requestOrigin(req);
+        if (!event) {
+          res.statusCode = 404;
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store');
+          return res.end(renderEventNotFound(origin));
+        }
+        const template = await eventTemplate();
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+        return res.end(applyEventMeta(template, { event, origin }));
+      }
+      if (path.startsWith('/event/') && method === 'GET') {
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.end(renderEventNotFound(requestOrigin(req)));
+      }
       if (path === '/api/site-settings' && method === 'GET') {
         // Public, non-personal data: let the CDN answer repeat visits so the film and soundtrack can start instantly.
         res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=300');

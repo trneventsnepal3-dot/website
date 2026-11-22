@@ -4,8 +4,10 @@ import EventActions from './EventActions'
 import EventRecap from './EventRecap'
 import StopAftermovie from './StopAftermovie'
 import TourMap from './TourMap'
+import { EventShareButton } from './EventShareButton'
 import { eventDateLabel, eventVenueLabel, formatEventDate, formatEventTime, useEvents, usePastEvents } from '../events'
 import { nextStop } from '../countdown'
+import { clearEventUrl, linkedEventId } from '../calendar'
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUpRight, X } from '@phosphor-icons/react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -44,12 +46,12 @@ export default function UpcomingEvents({ musicVolume = 0.35 }: { musicVolume?: n
   const close = () => {
     setSelected(null)
     trigger.current?.focus({ preventScroll: true })
-    if (new URLSearchParams(window.location.search).get('event')) window.history.replaceState({}, '', window.location.pathname)
+    clearEventUrl()
   }
   useEffect(() => { ScrollTrigger.refresh() }, [events])
   useEffect(() => {
     if (linked.current || !events) return
-    const id = new URLSearchParams(window.location.search).get('event')
+    const id = linkedEventId()
     if (id && events.some(event => event.id === id)) { linked.current = true; setSelected(id) }
   }, [events])
   useEffect(() => {
@@ -135,12 +137,12 @@ export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
   const close = () => {
     setSelected(null)
     trigger.current?.focus({ preventScroll: true })
-    if (new URLSearchParams(window.location.search).get('event')) window.history.replaceState({}, '', window.location.pathname)
+    clearEventUrl()
   }
   useEffect(() => { ScrollTrigger.refresh() }, [events])
   useEffect(() => {
     if (linked.current || !events) return
-    const id = new URLSearchParams(window.location.search).get('event')
+    const id = linkedEventId()
     if (id && events.some(event => event.id === id)) { linked.current = true; setSelected(id) }
   }, [events])
   useEffect(() => {
@@ -200,6 +202,7 @@ export function PastEvents({ musicVolume = 0.35 }: { musicVolume?: number }) {
             {active.date && <span className="past-dialog-tag">{new Date(`${active.date}T00:00:00Z`).getUTCFullYear()}</span>}
             <span className="past-dialog-tag">{active.location}</span>
           </div>
+          <div className="past-dialog-share"><EventShareButton event={active} /></div>
           <dl className="past-dialog-info">
             <div><dt>Date</dt><dd>{eventDateLabel(active)}</dd></div>
             <div><dt>{active.type === 'tour' ? 'Shows' : 'Venue'}</dt><dd>{eventVenueLabel(active)}</dd></div>

@@ -114,6 +114,7 @@
 
 .past-dialog-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .past-dialog-tag { padding: 6px 12px; border: 1px solid rgb(255 255 255 / 22%); border-radius: 999px; font-size: 12px; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; color: var(--paper); }
+.past-dialog-share { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 
 .past-dialog-info { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; margin: 0; padding-top: 24px; margin-top: 26px; border-top: 1px solid rgb(255 255 255 / 12%); }
 .past-dialog-info > div { min-width: 0; }

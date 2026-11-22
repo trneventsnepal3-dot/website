@@ -11,6 +11,9 @@ test('Vercel rewrite serves nested admin routes through the flat API function', 
   const config = JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
   const rule = config.rewrites.find(rule => rule.source === '/api/:path*');
   assert.equal(rule.destination,'/api/router?__trn_path=:path*');
+  const eventRule = config.rewrites.find(rule => rule.source === '/event/:id');
+  assert.equal(eventRule.destination,'/api/router?__trn_path=event/:id');
+  assert.ok(String(config.functions['api/router.js'].includeFiles).includes('dist/index.html'));
   await access(new URL('../api/router.js',import.meta.url));
   const database = new PGlite();
   await database.exec(await readFile(new URL('../server/schema.sql',import.meta.url),'utf8'));
