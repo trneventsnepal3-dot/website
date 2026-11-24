@@ -1,6 +1,7 @@
 import type { LiveEvent } from './events'
 import { eventDateLabel } from './events'
 import QRCode from 'qrcode'
+import { SITE_DOMAIN, siteEventUrl } from './site'
 
 export type StoryTemplateId = 'experimental' | 'cinematic' | 'luxury'
 
@@ -40,12 +41,9 @@ export type StoryData = {
 const clean = (value?: string | null) => (value || '').replace(/\s+/g, ' ').trim()
 const sameText = (a: string, b: string) => clean(a).toLowerCase() === clean(b).toLowerCase()
 
-/** The official public domain printed on every generated story. */
-const STORY_WEBSITE = 'trneventsnepal.com.np'
-
 /** Canonical event URL used by the QR code and shared links. */
 export function storyEventUrl(event: LiveEvent) {
-  return `https://${STORY_WEBSITE}/event/${event.id}`
+  return siteEventUrl(event)
 }
 
 function placeParts(value?: string) {
@@ -90,7 +88,7 @@ export function storyData(event: LiveEvent): StoryData {
     eventNumber: clean(event.eventNumber),
     organizer: clean(event.organizer),
     organizerType: event.organizerType,
-    host: STORY_WEBSITE,
+    host: SITE_DOMAIN,
     url: storyEventUrl(event),
     isPast: Boolean(event.isPast),
     showCount: event.type === 'tour' ? stops.length : 1,
