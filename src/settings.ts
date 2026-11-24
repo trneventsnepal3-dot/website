@@ -22,7 +22,7 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
   try { data = await response.json() } catch {
     throw new Error(response.status === 404 ? 'The API route was not found. Refresh after the latest deployment finishes.' : `The API returned an unexpected response (HTTP ${response.status}). Please try again.`)
   }
-  if (!response.ok) throw Object.assign(new Error(data.error || 'Something went wrong.'), { status: response.status })
+  if (!response.ok) throw Object.assign(new Error(data.error || 'Something went wrong.'), { status: response.status, code: data.code })
   return data as T
 }
 export function useSiteSettings(): { settings: Settings; ready: boolean } {

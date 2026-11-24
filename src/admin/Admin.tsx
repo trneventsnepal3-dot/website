@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, Check, Image, MusicNote, UploadSimple, X } from '@phosphor-icons/react'
+import { ArrowUpRight, ChartLineUp, Check, Image, MusicNote, UploadSimple, X } from '@phosphor-icons/react'
 import { api, type Media, type Settings } from '../settings'
 import { uploadMedia } from '../upload'
 import './admin.css'
+import AnalyticsManager from './AnalyticsManager'
 import EventManager from './EventManager'
 import GalleryManager from './GalleryManager'
 
@@ -19,7 +20,7 @@ function keepUnsaved(current: Settings, fresh: Settings, baseline: Settings): Se
 }
 export default function Admin() {
   const [session, setSession] = useState<'loading' | 'signed-out' | 'signed-in'>('loading')
-  const [tab, setTab] = useState<'media' | 'events' | 'albums'>('media')
+  const [tab, setTab] = useState<'media' | 'events' | 'albums' | 'analytics'>('media')
   const [settings, setSettings] = useState<Settings | null>(null)
   const [saved, setSaved] = useState('')
   const [password, setPassword] = useState('')
@@ -42,7 +43,20 @@ export default function Admin() {
     return fresh
   }
   const load = () => reload()
-  useEffect(() => { document.title = 'Site controls — TRN Events'; void load().catch((e: Error & { status?: number }) => { setSession('signed-out'); if (e.status !== 401) setError(e.message) }) }, [])
+  useEffect(() => {
+    document.title = 'Site controls — TRN Events'
+    void (async () => {
+      try {
+        const check = await api<{ authenticated: boolean }>('admin/session')
+        if (!check.authenticated) { setSession('signed-out'); return }
+        await load()
+      } catch (e) {
+        const error = e as Error & { status?: number }
+        setSession('signed-out')
+        if (error.status !== 401) setError(error.message)
+      }
+    })()
+  }, [])
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = '' } }
     window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn)
@@ -86,10 +100,11 @@ export default function Admin() {
   return <div className="admin-app">
     <header className="admin-header"><a href="/" className="admin-identity">TRN Events <span>Site controls</span></a><div><a href="/" target="_blank" rel="noreferrer">View website <ArrowUpRight size={16} /></a>{session === 'signed-in' && <button disabled={busy || !!uploading} onClick={async () => { setBusy(true); try { await api('admin/logout', 'POST'); setSettings(null); setSession('signed-out'); setPassword(''); setError(''); setNotice('') } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}>Sign out</button>}</div></header>
     {session === 'loading' ? <main className="admin-loading" role="status">Loading site controls…</main> : session === 'signed-out' ? <main className="admin-login"><h1>Admin sign in</h1><p>Sign in to manage what’s playing<br />and what’s on show.</p><form onSubmit={async event => { event.preventDefault(); setBusy(true); setError(''); try { await api('admin/login', 'POST', { password }); setPassword(''); await load() } catch(e) { setError((e as Error).message) } finally { setBusy(false) } }}><label htmlFor="admin-password">Admin password</label><input id="admin-password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" maxLength={128} required autoFocus /><button className="admin-primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button></form>{error && <p className="admin-error" role="alert">{error}</p>}</main> : settings && <main className="admin-main">
-      <div className="admin-title"><div><h1>{tab === 'media' ? 'Site settings' : tab === 'events' ? 'Live events' : 'Gallery albums'}</h1><p>{tab === 'media' ? 'A poster to announce it. A soundtrack to set the mood.' : tab === 'events' ? 'The photo, the place and the date for your next live event.' : 'One event, one album. Choose a cover and add its photos.'}</p></div>{tab === 'media' && <div className="admin-save"><span role="status">{dirty ? 'Unsaved media changes' : 'Media settings saved'}</span><button className="admin-primary" onClick={() => void save()} disabled={!dirty || busy || !!uploading}>{busy ? 'Saving…' : 'Save changes'}{!busy && <Check size={18} />}</button></div>}</div>
-      <nav className="admin-tabs" aria-label="Admin sections"><button aria-pressed={tab === 'media'} onClick={() => setTab('media')} disabled={busy || !!uploading}>Site media{dirty ? ' · Unsaved' : ''}</button><button aria-pressed={tab === 'events'} onClick={() => setTab('events')} disabled={busy || !!uploading}>Live events</button><button aria-pressed={tab === 'albums'} onClick={() => setTab('albums')} disabled={busy || !!uploading}>Gallery albums</button></nav>
+      <div className="admin-title"><div><h1>{tab === 'media' ? 'Site settings' : tab === 'events' ? 'Live events' : tab === 'albums' ? 'Gallery albums' : 'Website analytics'}</h1><p>{tab === 'media' ? 'A poster to announce it. A soundtrack to set the mood.' : tab === 'events' ? 'The photo, the place and the date for your next live event.' : tab === 'albums' ? 'One event, one album. Choose a cover and add its photos.' : 'Real visitors, real locations, real page views — straight from this website.'}</p></div>{tab === 'media' && <div className="admin-save"><span role="status">{dirty ? 'Unsaved media changes' : 'Media settings saved'}</span><button className="admin-primary" onClick={() => void save()} disabled={!dirty || busy || !!uploading}>{busy ? 'Saving…' : 'Save changes'}{!busy && <Check size={18} />}</button></div>}</div>
+      <nav className="admin-tabs" aria-label="Admin sections"><button aria-pressed={tab === 'media'} onClick={() => setTab('media')} disabled={busy || !!uploading}>Site media{dirty ? ' · Unsaved' : ''}</button><button aria-pressed={tab === 'events'} onClick={() => setTab('events')} disabled={busy || !!uploading}>Live events</button><button aria-pressed={tab === 'albums'} onClick={() => setTab('albums')} disabled={busy || !!uploading}>Gallery albums</button><button aria-pressed={tab === 'analytics'} onClick={() => setTab('analytics')} disabled={!!uploading}>Analytics<ChartLineUp size={15} /></button></nav>
       <div hidden={tab !== 'events'}><EventManager uploadsAvailable={Boolean(settings.uploadsAvailable)} /></div>
       <div hidden={tab !== 'albums'}><GalleryManager uploadsAvailable={Boolean(settings.uploadsAvailable)} disabled={busy||!!uploading} /></div>
+      <div hidden={tab !== 'analytics'}><AnalyticsManager /></div>
       <div hidden={tab !== 'media'}>
       {error && <div className="admin-message admin-error" role="alert">{error}{error.includes('Reload') && <button onClick={() => { void reload(true).then(() => { setError(''); setNotice('Settings reloaded. Save again to keep your changes.') }).catch(e => setError(e.message)) }}>Reload settings</button>}</div>}
       {notice && <p className="admin-message" role="status">{notice}</p>}

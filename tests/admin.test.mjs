@@ -75,7 +75,9 @@ test('protected admin, media publication, conflict handling and session revocati
   cookie = undefined;
   const again = await request('admin/login', 'POST', { password }); cookie = again.headers.get('set-cookie').split(';')[0];
   env.ADMIN_PASSWORD_HASH = await hashPassword('Changed-test-password!');
-  assert.equal((await request('admin/session')).status, 401);
+  const expired = await request('admin/session');
+  assert.equal(expired.status, 200);
+  assert.equal(expired.data.authenticated, false);
 });
 test('login throttling persists in the database', async () => {
   await database.exec('DELETE FROM trn_login_limits'); cookie = undefined;

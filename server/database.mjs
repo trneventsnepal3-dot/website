@@ -36,9 +36,13 @@ export function createDatabase(env = process.env, query, onWrite) {
 
   return async function db(statement, values = []) {
     const write = /^\s*(INSERT|UPDATE|DELETE)\b/i.exec(statement)?.[1]?.toLowerCase() || '';
+    // Analytics is high-volume, single-database data. It must never trigger a
+    // full Neon/Supabase mirror sync, and it is intentionally not copied between
+    // the two databases (each deployment records its own visitors).
+    const syncWrite = write && !/\banalytics_(?:visitors|sessions|page_views)\b/i.test(statement) ? write : '';
     const finish = async (rows, source) => {
-      if (write && onWrite) {
-        try { await onWrite(source, write === 'delete' ? deletedKey(statement, values, rows) : null); }
+      if (syncWrite && onWrite) {
+        try { await onWrite(source, syncWrite === 'delete' ? deletedKey(statement, values, rows) : null); }
         catch (error) { console.warn(`TRN sync could not queue ${source} changes: ${error.message}`); }
       }
       return rows;

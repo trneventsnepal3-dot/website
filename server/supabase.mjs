@@ -136,6 +136,32 @@ export function createSupabaseQuery(env = process.env) {
       throw error;
     };
     try {
+      if (sql === 'SELECT analytics_ready() AS ready') {
+        try {
+          const value = await request(env, 'rest/v1/rpc/analytics_ready', { method: 'POST', body: {} });
+          return [{ ready: value === true }];
+        } catch (error) {
+          if (error.status === 404) return [{ ready: false }];
+          throw error;
+        }
+      }
+      if (sql.startsWith('SELECT analytics_track($1::jsonb) AS result')) {
+        const payload = typeof values[0] === 'string' ? JSON.parse(values[0]) : values[0];
+        const result = await request(env, 'rest/v1/rpc/analytics_track', { method: 'POST', body: { payload } });
+        return [{ result }];
+      }
+      if (sql.startsWith('SELECT analytics_dashboard($1,$2,$3,$4) AS data')) {
+        const [p_from, p_to, p_tz, p_granularity] = values;
+        const result = await request(env, 'rest/v1/rpc/analytics_dashboard', {
+          method: 'POST',
+          body: { p_from, p_to, p_tz, p_granularity },
+        });
+        return [{ data: result }];
+      }
+      if (sql.startsWith('SELECT analytics_live($1) AS data')) {
+        const result = await request(env, 'rest/v1/rpc/analytics_live', { method: 'POST', body: { p_tz: values[0] } });
+        return [{ data: result }];
+      }
       if (sql === 'SELECT token FROM trn_sessions WHERE token=$1 AND credential=$2 AND expires_at > now()') {
         return await table(env, 'trn_sessions', { query: { select: 'token', token: `eq.${values[0]}`, credential: `eq.${values[1]}`, expires_at: `gt.${iso(Date.now())}` } });
       }

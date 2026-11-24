@@ -9,6 +9,7 @@ import { digest, verifyPassword } from './password.mjs';
 import { createEvents } from './events.mjs';
 import { createGallery } from './gallery.mjs';
 import { createAlbums } from './albums.mjs';
+import { createAnalytics } from './analytics.mjs';
 import { applyEventMeta, renderEventNotFound } from './event-page.mjs';
 
 const EVENT_PATH = /^\/(?:api\/)?event\/([a-f0-9-]{36})\/?$/i;
@@ -41,22 +42,28 @@ async function readBody(req) {
   let raw = ''; for await (const chunk of req) { raw += chunk; if (raw.length > 65536) fail(413, 'Request too large.'); }
   try { return JSON.parse(raw || '{}'); } catch { fail(400, 'Invalid request.'); }
 }
-export function createHandler({ env = process.env, query, storage = createStorage(env) } = {}) {
+export function createHandler({ env = process.env, query, storage = createStorage(env), analyticsOptions } = {}) {
   const sync = createSync(env, { query });
   const db = createDatabase(env, query, (source, deletion) => sync.mark(source, deletion));
   const credential = () => digest(env.ADMIN_PASSWORD_HASH || '');
   const events = createEvents(db);
   const gallery = createGallery(db);
   const albums = createAlbums(db, gallery);
+  const analytics = createAnalytics(db, env, analyticsOptions);
   const configured = () => { if (!env.ADMIN_PASSWORD_HASH) fail(503, 'Set ADMIN_PASSWORD_HASH using npm run admin:password.'); };
   const tokenOf = req => /(?:^|;\s*)trn_admin=([A-Za-z0-9_-]+)/.exec(req.headers.cookie || '')?.[1];
+  async function sessionOwner(req) {
+    const token = tokenOf(req);
+    if (!env.ADMIN_PASSWORD_HASH || !token) return null;
+    const owner = digest(token);
+    const rows = await db('SELECT token FROM trn_sessions WHERE token=$1 AND credential=$2 AND expires_at > now()', [owner, credential()]);
+    return rows.length ? owner : null;
+  }
   async function authenticate(req) {
     configured();
-    const token = tokenOf(req);
-    if (!token) fail(401, 'Please sign in.');
-    const rows = await db('SELECT token FROM trn_sessions WHERE token=$1 AND credential=$2 AND expires_at > now()', [digest(token), credential()]);
-    if (!rows.length) fail(401, 'Your session has expired. Please sign in.');
-    return digest(token);
+    const owner = await sessionOwner(req);
+    if (!owner) fail(401, tokenOf(req) ? 'Your session has expired. Please sign in.' : 'Please sign in.');
+    return owner;
   }
   function csrf(req) {
     let origin; try { origin = new URL(req.headers.origin); } catch { fail(403, 'Invalid request origin.'); }
@@ -111,6 +118,10 @@ export function createHandler({ env = process.env, query, storage = createStorag
       if (path === '/api/past-events' && method === 'GET') return send(200, await events.list(false, true));
       if (path === '/api/gallery' && method === 'GET') return send(200, await gallery.list());
       if (path === '/api/albums' && method === 'GET') return send(200, await albums.list());
+      if (path === '/api/analytics/track' && method === 'POST') {
+        const result = await analytics.track(req, await readBody(req));
+        return send(result.ignored ? 202 : 200, result);
+      }
       if (!path.startsWith('/api/admin/')) fail(404, 'Not found.');
       if (path === '/api/admin/login' && method === 'POST') {
         csrf(req); configured();
@@ -125,6 +136,7 @@ export function createHandler({ env = process.env, query, storage = createStorag
         await db("INSERT INTO trn_sessions(token,credential,expires_at) VALUES($1,$2,now()+interval '12 hours')", [digest(token), credential()]);
         cookie(token, 43200); return send(200, { authenticated: true });
       }
+      if (path === '/api/admin/session' && method === 'GET') return send(200, { authenticated: Boolean(await sessionOwner(req)) });
       if (path === '/api/admin/uploads' && method === 'POST') {
         csrf(req); const owner = await authenticate(req);
         if (!storage.configured()) fail(503, 'Add Neon or Supabase object storage credentials to enable uploads.');
@@ -140,6 +152,8 @@ export function createHandler({ env = process.env, query, storage = createStorag
       }
       const owner = await authenticate(req);
       if (method !== 'GET') csrf(req);
+      if (path === '/api/admin/analytics' && method === 'GET') return send(200, await analytics.dashboard(new URL(req.url, 'http://localhost').searchParams));
+      if (path === '/api/admin/analytics/live' && method === 'GET') return send(200, await analytics.live());
       if (path === '/api/admin/albums' && method === 'GET') return send(200, await albums.list(true));
       if (path === '/api/admin/albums' && method === 'POST') return send(201, await albums.save(await readBody(req)));
       const albumPath = /^\/api\/admin\/albums\/([a-f0-9-]+)$/.exec(path);
@@ -164,7 +178,6 @@ export function createHandler({ env = process.env, query, storage = createStorag
         if (method === 'PUT') return send(200, await events.save(await readBody(req),eventPath[1]));
         if (method === 'DELETE') return send(200, await events.remove(eventPath[1],await readBody(req)));
       }
-      if (path === '/api/admin/session' && method === 'GET') return send(200, { authenticated: true });
       if (path === '/api/admin/logout' && method === 'POST') { await db('DELETE FROM trn_sessions WHERE token=$1', [owner]); cookie('', 0); return send(200, { ok: true }); }
       if (path === '/api/admin/settings' && method === 'GET') return send(200, { ...await settings(), uploadsAvailable: storage.configured() });
       if (path === '/api/admin/media' && method === 'POST') {
@@ -194,7 +207,10 @@ export function createHandler({ env = process.env, query, storage = createStorag
       fail(404, 'Not found.');
     } catch (error) {
       if (!error.status) console.error('TRN API failure:', error);
-      send(error.status || 503, { error: error.status ? error.message : 'Service unavailable. Check the database and storage configuration, then try again.' });
+      send(error.status || 503, {
+        error: error.status ? error.message : 'Service unavailable. Check the database and storage configuration, then try again.',
+        ...(error.code ? { code: error.code } : {}),
+      });
     }
   };
 }

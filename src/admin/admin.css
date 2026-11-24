@@ -91,8 +91,10 @@
 .admin-switch span { position: relative; z-index: 1; }
 .admin-upload,.admin-file-row > button { min-height: 44px; }
 .admin-app { color-scheme: dark; }
-.admin-tabs { display: flex; gap: 28px; margin-bottom: 24px; border-bottom: 1px solid #303030; }
-.admin-tabs button { position: relative; padding: 0 0 12px; min-height: 44px; color: #a3a3a3; }
+.admin-tabs { display: flex; gap: 28px; margin-bottom: 24px; border-bottom: 1px solid #303030; overflow-x: auto; scrollbar-width: none; }
+.admin-tabs::-webkit-scrollbar { display: none; }
+.admin-tabs button { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 0 0 12px; min-height: 44px; color: #a3a3a3; white-space: nowrap; }
+.admin-tabs button > svg { flex-shrink: 0; }
 .admin-tabs button[aria-pressed=true] { color: #f2f2f2; }
 .admin-tabs button[aria-pressed=true]::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: #f2f2f2; }
 .admin-gallery { margin-top: 24px; }

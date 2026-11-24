@@ -10,6 +10,7 @@ if (!process.env.DATABASE_URL) {
   const { PGlite } = await import('@electric-sql/pglite');
   const database = new PGlite();
   await database.exec(await readFile(new URL('../server/schema.sql', import.meta.url), 'utf8'));
+  await database.exec(await readFile(new URL('../server/analytics.sql', import.meta.url), 'utf8'));
   const env = { ...process.env };
   if (!env.ADMIN_PASSWORD_HASH) env.ADMIN_PASSWORD_HASH = await hashPassword('admin');
   handler = createHandler({ env, query: async (statement, values) => (await database.query(statement, values)).rows });
